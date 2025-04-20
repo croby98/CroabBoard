@@ -1,0 +1,32 @@
+import { Outlet, createRootRoute } from '@tanstack/react-router';
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Navbar from '@/components/Navbar';
+import { useAuth } from '@/context/AuthContext';
+
+export const Route = createRootRoute({
+    component: () => {
+        return (
+            <ProtectedRoute>
+                <AppLayout />
+            </ProtectedRoute>
+        );
+    },
+});
+
+function AppLayout() {
+    const { isAuthenticated } = useAuth();
+
+    return (
+        <>
+            <header className="bg-gray-950 text-white p-4 flex items-center justify-center">
+                <h1 className="text-2xl font-bold">CrobBoard</h1>
+                {isAuthenticated && <Navbar />} {/* Show navbar only if authenticated */}
+            </header>
+            <main className="flex flex-col min-h-screen">
+                <Outlet />
+            </main>
+            <TanStackRouterDevtools />
+        </>
+    );
+}
