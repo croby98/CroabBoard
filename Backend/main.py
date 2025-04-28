@@ -601,9 +601,6 @@ def fetch_buttons():
     """
     Fetch buttons with optional category filtering, including related sound files.
     """
-    # Optional category filter
-    category_name = request.args.get("category")
-
     # Subquery to get the most recent uploaded file based on sound_id and image_id
     subquery = (
         db.session.query(func.max(Uploaded.id).label("max_id"))
@@ -621,7 +618,7 @@ def fetch_buttons():
             image_alias,
             Uploaded,
             Linked.tri,
-            Category.name.label("category_name"),
+            Category,
             sound_alias
         )
         .join(Uploaded, image_alias.id == Uploaded.image_id)  # Join for image file
@@ -633,12 +630,9 @@ def fetch_buttons():
         .filter(image_alias.type == "image")  # Filter to include only images as buttons
         .order_by(Linked.tri.asc())  # Order by `tri`
     )
-
-    # Apply category filter if provided
-    if category_name:
-        buttons_query = buttons_query.filter(Category.name == category_name)
-
+    print(buttons_query)
     results = buttons_query.all()
+
 
     # Get user's button size
     btn_size = db.session.query(User.btn_size).filter(User.id == current_user.id).scalar()
@@ -654,7 +648,8 @@ def fetch_buttons():
                 "sound_filename": sound_file.filename if sound_file else None,
                 "button_name": uploaded.button_name,
                 "tri": tri,
-                "category": category,
+                "category": category.name,
+                "category_color": category.color,
             }
         )
 

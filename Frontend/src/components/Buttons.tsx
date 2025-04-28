@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {searchButtons} from '@/api/api';
 
 interface Button {
@@ -11,6 +11,7 @@ interface Button {
     button_name: string;
     tri: number;
     category: string;
+    category_color: string;
 }
 
 const Buttons: React.FC = () =>{
@@ -69,7 +70,6 @@ const Buttons: React.FC = () =>{
         }
     };
 
-
     useEffect(() => {
         getButtonSize();
         fetchButtons(); // Call the async function
@@ -77,7 +77,7 @@ const Buttons: React.FC = () =>{
 
 
     return (
-        <div className="p-4 text-white">
+        <div className="p-4">
             <audio className="flex items-center justify-center p-2 m-auto" ref={audioRef} controls />
             {errorMessage && <p className="text-red-500">{errorMessage}</p>}
             {buttons.length > 0 ? (
@@ -85,7 +85,8 @@ const Buttons: React.FC = () =>{
                     {buttons.map((button) => (
                         <div
                             key={button.image_id}
-                            className="border rounded shadow hover:shadow-lg"
+                            className={`border-2 rounded shadow hover:shadow-lg`}
+                            style={{ borderColor: button.category_color }}
                         >
                         <img className="rounded object-cover"
                              src={`${apiUrlFiles}${button.image_id}`}
