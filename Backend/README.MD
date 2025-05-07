@@ -8,6 +8,7 @@
 
 ```shell
 py -m venv .venv
+.venv/scripts/activate
 pip install -r requirements.txt
 py ./main.py
 ```
