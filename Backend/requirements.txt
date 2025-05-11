@@ -6,3 +6,5 @@ Flask-SQLAlchemy
 mysql-connector-python
 mysqlclient
 SQLAlchemy
+flask_cors
+dotenv
