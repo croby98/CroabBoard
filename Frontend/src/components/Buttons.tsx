@@ -22,7 +22,8 @@ const Buttons: React.FC = () =>{
     /** Ref for the audio element */
     const audioRef = useRef<HTMLAudioElement | null>(null); // Reference for audio element
 
-    const apiUrlFiles = 'http://localhost:5000/api/files/';
+    const apiUrlImagesFiles = 'http://localhost:5000/api/files/image/';
+     const apiUrlSoundFiles = 'http://localhost:5000/api/files/sound/';
 
     const fetchButtons = async () => {
         setLoading(true); // Start loading spinner
@@ -30,7 +31,8 @@ const Buttons: React.FC = () =>{
         try {
             const response = await searchButtons();
             setButtons(response.buttons || []); // Save fetched buttons
-        } catch (error: any) {
+            localStorage.setItem('buttons', JSON.stringify(response.buttons || []));
+          } catch (error: any) {
             setErrorMessage(error.message || 'Something went wrong.');
         } finally {
             setLoading(false); // Stop loading spinner
@@ -51,49 +53,63 @@ const Buttons: React.FC = () =>{
     }
 
     // Function to play sound in the audio element
-    const PlaySound = (sound_id?: number | null) => {
-        if (!sound_id) {
-            console.error('Invalid or missing sound ID.');
+    const PlaySound = (sound_filename?: string | null) => {
+        if (!sound_filename) {
+            console.error('Invalid or missing sound filename.');
             return;
         }
-
-        // Construct the sound URL
-        const soundUrl = `${apiUrlFiles}${sound_id}`;
-
-        // If the audioRef exists, update its `src` and play the sound
+        const soundUrl = `${apiUrlSoundFiles}${sound_filename}`;
         if (audioRef.current) {
-            audioRef.current.src = soundUrl; // Set the new source for the audio element
-            audioRef.current.volume = 0.5;
-            audioRef.current.play().catch((error) => {
-                console.error(`Error playing sound with ID ${sound_id}:`, error);
-            });
+            audioRef.current.src = soundUrl;
+            audioRef.current.play();
         }
     };
 
     useEffect(() => {
-        getButtonSize();
-        fetchButtons(); // Call the async function
+          const cachedButtons = localStorage.getItem('buttons');
+          if (cachedButtons) {
+               setButtons(JSON.parse(cachedButtons));
+          } else {
+               fetchButtons();
+          }
+          getButtonSize();
     }, []); // Empty dependency array ensures it only happens once on the component mount
 
+    useEffect(() => {
+        if (buttons.length > 0) {
+            // Preload images
+            buttons.forEach((button) => {
+                if (button.image_filename) {
+                    const img = new window.Image();
+                    img.src = `${apiUrlImagesFiles}${button.image_filename}`;
+                }
+                if (button.sound_filename) {
+                    const audio = new window.Audio();
+                    audio.src = `${apiUrlSoundFiles}${button.sound_filename}`;
+                }
+            });
+        }
+    }, [buttons]);
 
     return (
         <div className="p-4">
             <audio className="flex items-center justify-center p-2 m-auto" ref={audioRef} controls />
             {errorMessage && <p className="text-red-500">{errorMessage}</p>}
             {buttons.length > 0 ? (
-                <div className="flex  gap-2">
+                <div className="flex flex-wrap gap-2">
                     {buttons.map((button) => (
                         <div
                             key={button.image_id}
-                            className={`border-2 rounded shadow hover:shadow-lg`}
+                            className={`border-3 rounded shadow hover:shadow-lg`}
                             style={{ borderColor: button.category_color }}
                         >
-                        <img className="rounded object-cover"
-                             src={`${apiUrlFiles}${button.image_id}`}
-                             alt={button.button_name}
-                             width={buttonSize}
-                             height={buttonSize}
-                             onClick={() => PlaySound(button.sound_id)}
+                        <img
+                            className="object-fit"
+                            src={`${apiUrlImagesFiles}${button.image_filename}`}
+                            alt={button.button_name}
+                            loading="lazy"
+                            onClick={() => PlaySound(button.sound_filename)}
+                            style={{ height: buttonSize, width: buttonSize }}
                         />
                         </div>
                     ))}

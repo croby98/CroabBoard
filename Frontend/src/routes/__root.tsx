@@ -23,7 +23,7 @@ function AppLayout() {
                 <a href="/home" className="text-2xl font-bold">CrobBoard</a>
                 {isAuthenticated && <Navbar />} {/* Show navbar only if authenticated */}
             </header>
-            <main className="flex flex-col min-h-screen">
+            <main className="flex flex-col">
                 <Outlet />
             </main>
             <TanStackRouterDevtools />
