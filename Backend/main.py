@@ -151,34 +151,53 @@ def get_current_user():
 @app.route("/api/index", methods=["GET"])
 @login_required
 def index():
-    linked_files = (
-        db.session.query(
-            Uploaded.image_id,
-            Uploaded.sound_id,
-            Uploaded.button_name,
-            Linked.tri,
-            Category.name.label("category_name"),
-        )
-        .join(Linked, Uploaded.id == Linked.uploaded_id)
-        .join(User, Linked.user_id == User.id)
-        .filter(User.id == current_user.id)
-        .order_by(Linked.tri.asc())
-        .distinct()
-        .all()
+    subquery = (
+        db.session.query(func.max(Uploaded.id).label("max_id"))
+        .group_by(Uploaded.sound_id, Uploaded.image_id)
+        .subquery()
     )
 
+    image_alias = db.aliased(File)
+    sound_alias = db.aliased(File)
+
+    buttons_query = (
+        db.session.query(
+            image_alias,
+            Uploaded,
+            Linked.tri,
+            Category,
+            sound_alias
+        )
+        .join(Uploaded, image_alias.id == Uploaded.image_id)
+        .join(Linked, Linked.uploaded_id == Uploaded.id)
+        .join(subquery, subquery.c.max_id == Uploaded.id)
+        .outerjoin(Category, Uploaded.category_id == Category.id)
+        .outerjoin(sound_alias, sound_alias.id == Uploaded.sound_id)
+        .filter(Linked.user_id == current_user.id)
+        .filter(image_alias.type == "image")
+        .order_by(Linked.tri.asc())
+    )
+    results = buttons_query.all()
+
     btn_size = db.session.query(User.btn_size).filter(User.id == current_user.id).scalar()
-    buttons = [
-        {
-            "image_id": linked_file.image_id,
-            "sound_id": linked_file.sound_id,
-            "button_name": linked_file.button_name,
-            "tri": linked_file.tri,
-            "category": linked_file.category_name,
-        }
-        for linked_file in linked_files
-    ]
-    return jsonify({"success": True, "buttons": buttons, "btn_size": btn_size})
+
+    buttons = []
+    for image_file, uploaded, tri, category, sound_file in results:
+        buttons.append(
+            {
+                "image_id": image_file.id,
+                "uploaded_id": uploaded.id,
+                "image_filename": image_file.filename,
+                "sound_id": sound_file.id if sound_file else None,
+                "sound_filename": sound_file.filename if sound_file else None,
+                "button_name": uploaded.button_name,
+                "tri": tri,
+                "category": category.name if category else None,
+                "category_color": category.color if category else None,
+            }
+        )
+
+    return jsonify({"success": True, "buttons": buttons, "btn_size": btn_size}), 200
 
 @app.route("/api/delete_image/<int:image_id>", methods=["DELETE"])
 @login_required
@@ -234,10 +253,10 @@ def logout():
     logout_user()
     return jsonify({"success": True, "message": "Logged out successfully"}), 200
 
-@app.route("/api/home", methods=["GET"])
+@app.route("/api/profil", methods=["GET"])
 @login_required
 def profil():
-    File2 = db.aliased(File)  # <-- Define alias first!
+    File2 = db.aliased(File)
     uploaded_file = (
         db.session.query(
             Uploaded.image_id,
@@ -603,25 +622,23 @@ def fetch_buttons():
         db.session.query(
             image_alias,
             Uploaded,
-            Linked.tri,
             Category,
             sound_alias
         )
         .join(Uploaded, image_alias.id == Uploaded.image_id)
-        .join(Linked, Linked.uploaded_id == Uploaded.id)
         .join(subquery, subquery.c.max_id == Uploaded.id)
         .outerjoin(Category, Uploaded.category_id == Category.id)
         .outerjoin(sound_alias, sound_alias.id == Uploaded.sound_id)
-        .filter(Linked.user_id == current_user.id)
         .filter(image_alias.type == "image")
-        .order_by(Linked.tri.asc())
+        .distinct(image_alias.id, sound_alias.id)
+        .order_by(image_alias.id.asc())
     )
     results = buttons_query.all()
 
     btn_size = db.session.query(User.btn_size).filter(User.id == current_user.id).scalar()
 
     buttons = []
-    for image_file, uploaded, tri, category, sound_file in results:
+    for image_file, uploaded, category, sound_file in results:
         buttons.append(
             {
                 "image_id": image_file.id,
@@ -629,7 +646,6 @@ def fetch_buttons():
                 "sound_id": sound_file.id if sound_file else None,
                 "sound_filename": sound_file.filename if sound_file else None,
                 "button_name": uploaded.button_name,
-                "tri": tri,
                 "category": category.name if category else None,
                 "category_color": category.color if category else None,
             }
@@ -768,6 +784,53 @@ def delete_button():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/getchecked", methods=["GET"])
+@login_required
+def api_getchecked():
+    try:
+        buttons = []
+        linked_files = (
+            db.session.query(Uploaded.image_id)
+            .join(Linked, Uploaded.id == Linked.uploaded_id)
+            .filter(Linked.user_id == current_user.id)
+            .distinct()
+            .all()
+        )
+        for linked_file in linked_files:
+            image = db.session.get(File, linked_file.image_id)
+            if image:
+                buttons.append({"id": image.id})
+        return jsonify({"ids": buttons}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route("/api/add_file/<int:image_id>/<int:sound_id>", methods=["POST"])
+@login_required
+def api_add_file(image_id, sound_id):
+    try:
+        # Find the Uploaded entry for this image and sound
+        uploaded = Uploaded.query.filter_by(image_id=image_id, sound_id=sound_id).first()
+        if not uploaded:
+            return jsonify({"success": False, "message": "Button not found"}), 404
+
+        # Check if already linked
+        already_linked = Linked.query.filter_by(user_id=current_user.id, uploaded_id=uploaded.id).first()
+        if already_linked:
+            return jsonify({"success": True, "message": "Already linked"}), 200
+
+        # Find the max tri for this user
+        max_tri = db.session.query(func.max(Linked.tri)).filter_by(user_id=current_user.id).scalar() or 0
+
+        # Add the link
+        new_linked = Linked(user_id=current_user.id, uploaded_id=uploaded.id, tri=max_tri + 1)
+        db.session.add(new_linked)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Button linked"}), 201
+
+    except Exception as e:
+        app.logger.error(f"Error linking button: {e}")
+        return jsonify({"success": False, "message": "Internal server error"}), 500
 
 # Dashboard and management endpoints remain unchanged
 

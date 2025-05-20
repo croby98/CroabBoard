@@ -1,2 +1,6 @@
 @import "tailwindcss";
 
+.context-menu li:hover {
+    background: #444;
+    border-radius: 0.5rem;
+}
