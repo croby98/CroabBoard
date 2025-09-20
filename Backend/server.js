@@ -436,6 +436,55 @@ app.post('/api/buttons', authenticateUser, upload.fields([
   }
 });
 
+// Bulk operations endpoint
+app.post('/api/bulk-operations', authenticateUser, async (req, res) => {
+  try {
+    const { operation, buttonIds } = req.body;
+
+    if (!operation || !buttonIds || !Array.isArray(buttonIds)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Operation and buttonIds array are required' 
+      });
+    }
+
+    switch (operation) {
+      case 'delete':
+        // Bulk delete linked buttons
+        for (const buttonId of buttonIds) {
+          await Linked.delete(req.user.id, buttonId);
+        }
+        break;
+      
+      case 'link':
+        // Bulk link buttons
+        const maxTri = await Linked.getMaxTri(req.user.id);
+        for (let i = 0; i < buttonIds.length; i++) {
+          await Linked.createOrUpdate(req.user.id, buttonIds[i], maxTri + i + 1);
+        }
+        break;
+
+      default:
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid operation. Supported: delete, link' 
+        });
+    }
+
+    res.json({
+      success: true,
+      message: `Bulk ${operation} completed for ${buttonIds.length} buttons`
+    });
+
+  } catch (error) {
+    console.error('Bulk operation error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Bulk operation failed' 
+    });
+  }
+});
+
 // User routes
 app.get('/api/users', async (req, res) => {
   try {

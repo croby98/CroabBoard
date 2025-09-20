@@ -32,8 +32,8 @@ CroabBoard-Rework is a modern, full-featured soundboard application built for se
 - [x] **File serving** (Images & Audio from `/uploads/` folder)
 - [x] **Upload new sounds** (✅ Full upload system with categories) 🔥
 - [x] **File processing** (✅ Multer middleware with proper storage)
-- [ ] Bulk sound operations
-- [ ] Sound quality controls
+- [x] **Bulk sound operations** (✅ Bulk delete/link operations via API)
+- [x] **Sound quality controls** (✅ User-adjustable volume control)
 
 ### 🏠 Core Pages & UI
 - [x] **Login page** (✅ Username/Password with session persistence)

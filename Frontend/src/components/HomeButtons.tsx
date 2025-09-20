@@ -20,6 +20,8 @@ const HomeButtons: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [buttonSize, setButtonSize] = useState(0);
+    const [volume, setVolume] = useState(0.5);
+    const [showVolumeControl, setShowVolumeControl] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [contextMenu, setContextMenu] = useState<{
@@ -96,7 +98,7 @@ const HomeButtons: React.FC = () => {
         
         if (audioRef.current) {
             audioRef.current.src = soundUrl;
-            audioRef.current.volume = 0.5;
+            audioRef.current.volume = volume;
             audioRef.current.play().catch(error => {
                 console.error('Error playing sound:', error);
             });
@@ -115,7 +117,7 @@ const HomeButtons: React.FC = () => {
         if (audioRef.current) {
             audioRef.current.src = soundUrl;
             audioRef.current.currentTime = 0;
-            audioRef.current.volume = 0.5;
+            audioRef.current.volume = volume;
             audioRef.current.play();
         }
     };
@@ -212,10 +214,39 @@ const HomeButtons: React.FC = () => {
     };
 
     return (
-        <div className="p-4">
-            <audio ref={audioRef} controls className="flex items-center justify-center p-2 m-auto" />
-            {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-            {buttons.length > 0 ? (
+        <div className="flex flex-col items-center p-4 text-white">
+            <audio ref={audioRef} />
+            
+            {/* Volume Control */}
+            <div className="mb-4 flex items-center gap-4">
+                <button
+                    onClick={() => setShowVolumeControl(!showVolumeControl)}
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors"
+                >
+                    <span>🔊</span>
+                    <span>Volume: {Math.round(volume * 100)}%</span>
+                </button>
+                {showVolumeControl && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm">0%</span>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={volume}
+                            onChange={(e) => setVolume(parseFloat(e.target.value))}
+                            className="w-32"
+                        />
+                        <span className="text-sm">100%</span>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex flex-wrap gap-4 justify-center items-center">
+                {loading && <div className="text-center text-white">Loading your buttons...</div>}
+                {errorMessage && <div className="text-center text-red-500">{errorMessage}</div>}
+                {!loading && !errorMessage && buttons.length > 0 && (
                 <div className="flex flex-wrap gap-2" id="sound-buttons">
                     {buttons.map((button, idx) => (
                         <div
@@ -262,9 +293,11 @@ const HomeButtons: React.FC = () => {
                         </ul>
                     )}
                 </div>
-            ) : (
-                !loading && <p>No buttons found for your account.</p>
-            )}
+                )}
+                {!loading && !errorMessage && buttons.length === 0 && (
+                    <p>No buttons found for your account.</p>
+                )}
+            </div>
         </div>
     );
 };
