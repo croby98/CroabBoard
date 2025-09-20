@@ -190,6 +190,80 @@ app.get('/api/me', authenticateUser, async (req, res) => {
   }
 });
 
+// User registration endpoint
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, password, confirmPassword } = req.body;
+
+    // Validation
+    if (!username || !password || !confirmPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username, password, and password confirmation are required' 
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Passwords do not match' 
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password must be at least 6 characters long' 
+      });
+    }
+
+    if (username.length < 3) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username must be at least 3 characters long' 
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findByUsername(username);
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username already exists' 
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create user
+    const newUser = await User.create({
+      username: username,
+      password: hashedPassword,
+      btnSize: 150 // Default button size
+    });
+
+    console.log(`New user registered: ${username} (ID: ${newUser.id})`);
+
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        btnSize: newUser.btnSize
+      }
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Registration failed. Please try again.' 
+    });
+  }
+});
+
 // Profile endpoint - matches Python Flask /api/profil
 app.get('/api/profil', authenticateUser, async (req, res) => {
   try {

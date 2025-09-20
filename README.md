@@ -3,7 +3,16 @@
 A modern, interactive soundboard application built with React TypeScript and Node.js, featuring MySQL database for persistent storage.
 
 ## 🚀 Overview
-CroabBoard-Rework is a feature-rich soundboard designed for easy sound management and playback. Its primary function is to let users search, organize, and play sound buttons by categories. Enjoy a draggable user button, context menus for interval playback, and a dedicated buttons management page for a seamless audio experience.
+
+CroabBoard-Rework is a modern, full-featured soundboard application built for seamless audio management and playback. This complete rewrite transforms the original concept into a robust web application with professional-grade features including user authentication, file upload system, category management, and admin controls.
+
+**Key Highlights:**
+- 🎵 **138+ Migrated Sound Buttons** from legacy system  
+- 👥 **9 Active Users** with personalized collections
+- 🔐 **Secure Authentication** with session management
+- 📤 **Complete Upload System** for custom sounds
+- 🎯 **Owner-Only Admin Dashboard** for system management
+- 💾 **MySQL Database** for reliable data persistence
 
 ---
 
@@ -14,7 +23,7 @@ CroabBoard-Rework is a feature-rich soundboard designed for easy sound managemen
 - [x] **Session management** (Express sessions with persistence)
 - [x] **MySQL user storage** (9 existing users migrated)
 - [x] **Password reset functionality** (✅ Complete in profile page)
-- [ ] User registration system
+- [x] **User registration system** (✅ Complete with validation and database integration)
 - [x] **Button size preferences** (✅ Customizable per user)
 
 ### 🎵 Sound Management
@@ -154,11 +163,58 @@ To request implementation of any of these features:
 
 ### Database Schema
 ```sql
--- Users: id, username, password, btn_size
--- Categories: id, name, color
--- Files: id, filename, uploaded_by, file_type
--- Uploaded: id, image_id, sound_id, button_name, category_id, uploaded_by
--- Linked: id, user_id, uploaded_id
+-- Core Tables
+CREATE TABLE user (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    btn_size INT DEFAULT 150
+);
+
+CREATE TABLE category (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    color VARCHAR(50) DEFAULT '#3B82F6'
+);
+
+CREATE TABLE file (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL -- 'image' or 'sound'
+);
+
+CREATE TABLE uploaded (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    image_id INT,
+    sound_id INT,
+    uploaded_by INT,
+    button_name VARCHAR(50) NOT NULL,
+    category_id INT,
+    FOREIGN KEY (image_id) REFERENCES file(id),
+    FOREIGN KEY (sound_id) REFERENCES file(id),
+    FOREIGN KEY (uploaded_by) REFERENCES user(id),
+    FOREIGN KEY (category_id) REFERENCES category(id)
+);
+
+CREATE TABLE linked (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    uploaded_id INT,
+    tri INT NOT NULL, -- Position/order
+    FOREIGN KEY (user_id) REFERENCES user(id),
+    FOREIGN KEY (uploaded_id) REFERENCES uploaded(id)
+);
+
+CREATE TABLE deleted_button (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    delete_date DATETIME NOT NULL,
+    owner_id INT,
+    button_name VARCHAR(50),
+    sound_filename VARCHAR(255),
+    image_filename VARCHAR(255),
+    status ENUM('deleted', 'restored') DEFAULT 'deleted',
+    FOREIGN KEY (owner_id) REFERENCES user(id)
+);
 ```
 
 ## 🛠️ Getting Started
@@ -168,7 +224,7 @@ To request implementation of any of these features:
 - MySQL 8.0+
 - Bun (recommended) or npm
 
-### Installation
+### Quick Start
 
 1. **Clone the repository:**
    ```bash
@@ -179,41 +235,258 @@ To request implementation of any of these features:
 2. **Setup Backend:**
    ```bash
    cd Backend
-   bun install
+   bun install  # or npm install
+   cp .env.example .env
    # Configure your MySQL connection in .env
-   bun run start
+   bun run start  # or npm start
    ```
 
 3. **Setup Frontend:**
    ```bash
    cd Frontend
-   bun install
-   bun run dev
+   bun install  # or npm install
+   bun run dev  # or npm run dev
    ```
 
-4. **Database Setup:**
-   - Create MySQL database `croabboard`
-   - Import existing schema (if available)
-   - Backend will connect on startup
+4. **Access Application:**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:5000
 
 ### Environment Variables
 Create `.env` in Backend folder:
 ```env
+# Database Configuration
 DB_HOST=localhost
 DB_USER=your_mysql_user
 DB_PASSWORD=your_mysql_password
 DB_NAME=croabboard
-SESSION_SECRET=your-secret-key
+DB_PORT=3306
+
+# Session Configuration
+SESSION_SECRET=your-secure-session-secret-key
+
+# Application Configuration
 FRONTEND_URL=http://localhost:3000
+PORT=5000
+```
+
+### Database Setup
+```bash
+# Create database
+mysql -u root -p
+CREATE DATABASE croabboard;
+
+# Run the application - it will create tables automatically
+# Or manually execute the schema from Database Schema section above
+```
+
+### File Structure
+```
+CroabBoard-Rework/
+├── Backend/
+│   ├── models/           # Database models
+│   ├── uploads/          # File storage (images/audio)
+│   ├── server.js         # Main server file
+│   └── package.json
+├── Frontend/
+│   ├── src/
+│   │   ├── components/   # React components
+│   │   ├── routes/       # Page routes
+│   │   ├── context/      # Auth context
+│   │   └── api/          # API utilities
+│   ├── public/
+│   └── package.json
+└── README.md
+```
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+- `POST /api/login` - User login
+- `POST /api/logout` - User logout  
+- `GET /api/me` - Get current user info
+- `GET /api/profil` - Get user profile data
+
+### Button Management
+- `GET /api/linked` - Get user's linked buttons
+- `POST /api/buttons` - Upload new sound button
+- `GET /api/uploaded` - Get all uploaded buttons
+- `GET /api/user/uploaded` - Get user's uploaded buttons
+- `DELETE /api/delete_image/:id` - Remove button from user's collection
+
+### Admin Endpoints (Owner Only)
+- `GET /api/users` - Get all users
+- `GET /api/deleted_history` - Get deletion history
+- `POST /api/restore_from_history/:id` - Restore deleted button
+
+### Settings
+- `POST /api/button_size/:size` - Update user's button size preference
+- `POST /api/reset_password` - Update user password
+
+### File Serving
+- `GET /uploads/images/:filename` - Serve button images
+- `GET /uploads/audio/:filename` - Serve button audio files
+
+## 🔧 Usage Guide
+
+### For Users
+1. **Login** with your username and password
+2. **Browse Buttons** - View all available sound buttons
+3. **Link Buttons** - Add buttons to your personal collection
+4. **Upload Sounds** - Create custom buttons (image + audio + category)
+5. **Manage Profile** - Change password, adjust button size, view uploads
+6. **Play Sounds** - Click buttons to play audio, use context menu for spam mode
+
+### For Admins (Owner Only)
+1. **Access Admin** - Click profile picture → Admin (only visible to owner)
+2. **Overview** - View system statistics  
+3. **User Management** - Monitor user accounts and activity
+4. **Deleted Items** - View deletion history and restore items if needed
+
+### Keyboard Shortcuts
+- `Click` - Play sound once
+- `Right Click` - Open context menu (spam mode, remove button)
+- `Escape` - Close modals/menus
+
+## 🚀 Deployment
+
+### Production Setup
+1. **Environment Variables:**
+   ```env
+   NODE_ENV=production
+   DB_HOST=your-production-db-host
+   SESSION_SECRET=your-super-secure-session-secret
+   ```
+
+2. **Build Frontend:**
+   ```bash
+   cd Frontend
+   bun run build
+   ```
+
+3. **Serve Static Files:**
+   - Configure nginx/apache to serve built frontend
+   - Point API requests to backend server
+
+4. **SSL Certificate:**
+   - Set up HTTPS for production
+   - Update CORS settings accordingly
+
+### Docker Deployment (Optional)
+```dockerfile
+# Backend Dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 5000
+CMD ["npm", "start"]
 ```
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please open issues and submit pull requests for new features or bug fixes.
+We welcome contributions! Here's how you can help:
 
----
+### Development Setup
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and test thoroughly
+4. Commit with clear messages: `git commit -m 'Add amazing feature'`
+5. Push to your branch: `git push origin feature/amazing-feature`
+6. Open a Pull Request
+
+### Contribution Guidelines
+- Follow existing code style and conventions
+- Add tests for new features
+- Update documentation as needed
+- Keep commits atomic and well-documented
+- Test with both Bun and npm package managers
+
+### Reporting Issues
+- Use GitHub Issues for bug reports and feature requests
+- Provide clear reproduction steps
+- Include system information and error logs
+- Search existing issues before creating new ones
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Backend won't start:**
+```bash
+# Check MySQL connection
+mysql -u root -p -e "SHOW DATABASES;"
+
+# Verify environment variables
+cat Backend/.env
+
+# Check port availability
+netstat -an | findstr 5000  # Windows
+lsof -i :5000  # macOS/Linux
+```
+
+**Frontend can't connect to backend:**
+```bash
+# Verify CORS settings in server.js
+# Check if backend is running on port 5000
+curl http://localhost:5000/health
+```
+
+**File upload not working:**
+```bash
+# Check uploads directory permissions
+chmod 755 Backend/uploads/
+mkdir -p Backend/uploads/{images,audio}
+
+# Verify multer configuration
+# Check file size limits (default 10MB)
+```
+
+**Session/Login issues:**
+```bash
+# Clear browser cookies and localStorage
+# Check session secret in .env
+# Verify bcrypt installation
+npm list bcrypt
+```
+
+**Database connection failed:**
+```sql
+-- Check user permissions
+SHOW GRANTS FOR 'your_user'@'localhost';
+GRANT ALL PRIVILEGES ON croabboard.* TO 'your_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### Performance Optimization
+
+- **Database Indexing**: Add indexes for frequently queried columns
+- **File Caching**: Implement browser caching for audio/image files
+- **Image Optimization**: Compress images before upload
+- **Audio Format**: Use compressed audio formats (MP3, AAC)
+
+## 📊 System Requirements
+
+### Minimum Requirements
+- **CPU**: 2 cores, 2.0 GHz
+- **RAM**: 2 GB
+- **Storage**: 5 GB (for files and database)
+- **Network**: 100 Mbps (for file uploads)
+
+### Recommended Specifications
+- **CPU**: 4 cores, 2.5 GHz+
+- **RAM**: 4 GB+
+- **Storage**: 20 GB+ SSD
+- **Network**: 500 Mbps+
+
+### Browser Support
+- **Chrome**: 90+
+- **Firefox**: 88+
+- **Safari**: 14+
+- **Edge**: 90+
 
 ## 📄 License
 

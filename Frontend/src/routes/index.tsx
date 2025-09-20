@@ -95,7 +95,10 @@ function App() {
                     </button>
                 </form>
                 <p className="mt-4 text-sm text-gray-400 text-center">
-                    Enter your username and password to login
+                    Don't have an account?{' '}
+                    <a href="/register" className="text-blue-400 hover:underline">
+                        Register here
+                    </a>
                 </p>
             </div>
         </div>

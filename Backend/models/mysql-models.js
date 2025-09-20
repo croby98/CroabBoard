@@ -36,12 +36,12 @@ export class User {
   }
 
   static async create(userData) {
-    const { username, btnSize = 150 } = userData;
+    const { username, password, btnSize = 150 } = userData;
     const [result] = await pool.execute(
-      'INSERT INTO user (username, btn_size) VALUES (?, ?)',
-      [username, btnSize]
+      'INSERT INTO user (username, password, btn_size) VALUES (?, ?, ?)',
+      [username, password, btnSize]
     );
-    return { id: result.insertId, username, btn_size: btnSize };
+    return { id: result.insertId, username, password, btnSize };
   }
 
   static async updateButtonSize(userId, btnSize) {

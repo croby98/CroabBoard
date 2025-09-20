@@ -23,15 +23,54 @@ function App() {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+        setErrorMessage('');
 
-        // Check if passwords match
+        // Validation
+        if (!username || !password || !confirmPassword) {
+            setErrorMessage('All fields are required.');
+            return;
+        }
+
         if (password !== confirmPassword) {
             setErrorMessage('Passwords do not match.');
             return;
         }
 
-        // Mock API call for registration
-        await navigate({ to: '/' }); // Navigate to login on successful registration
+        if (password.length < 6) {
+            setErrorMessage('Password must be at least 6 characters long.');
+            return;
+        }
+
+        if (username.length < 3) {
+            setErrorMessage('Username must be at least 3 characters long.');
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:5000/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    username,
+                    password,
+                    confirmPassword
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                alert('Registration successful! Please login with your new account.');
+                navigate({ to: '/' });
+            } else {
+                setErrorMessage(data.message || 'Registration failed. Please try again.');
+            }
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Network error. Please try again.');
+        }
     };
 
     return (
