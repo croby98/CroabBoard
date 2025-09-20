@@ -8,173 +8,182 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ButtonsRouteImport } from './routes/Buttons'
+import { Route as IndexRouteImport } from './routes/index'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as SearchImport } from './routes/search'
-import { Route as RegisterImport } from './routes/register'
-import { Route as HomeImport } from './routes/home'
-import { Route as ButtonsImport } from './routes/Buttons'
-import { Route as IndexImport } from './routes/index'
-
-// Create/Update Routes
-
-const SearchRoute = SearchImport.update({
+const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const RegisterRoute = RegisterImport.update({
+const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const HomeRoute = HomeImport.update({
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ButtonsRoute = ButtonsImport.update({
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ButtonsRoute = ButtonsRouteImport.update({
   id: '/Buttons',
   path: '/Buttons',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const IndexRoute = IndexImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 
-// Populate the FileRoutesByPath interface
+export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
+  '/Buttons': typeof ButtonsRoute
+  '/admin': typeof AdminRoute
+  '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
+  '/register': typeof RegisterRoute
+  '/search': typeof SearchRoute
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/Buttons': typeof ButtonsRoute
+  '/admin': typeof AdminRoute
+  '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
+  '/register': typeof RegisterRoute
+  '/search': typeof SearchRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/Buttons': typeof ButtonsRoute
+  '/admin': typeof AdminRoute
+  '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
+  '/register': typeof RegisterRoute
+  '/search': typeof SearchRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/Buttons'
+    | '/admin'
+    | '/home'
+    | '/profile'
+    | '/register'
+    | '/search'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/Buttons'
+    | '/admin'
+    | '/home'
+    | '/profile'
+    | '/register'
+    | '/search'
+  id:
+    | '__root__'
+    | '/'
+    | '/Buttons'
+    | '/admin'
+    | '/home'
+    | '/profile'
+    | '/register'
+    | '/search'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
+  ButtonsRoute: typeof ButtonsRoute
+  AdminRoute: typeof AdminRoute
+  HomeRoute: typeof HomeRoute
+  ProfileRoute: typeof ProfileRoute
+  RegisterRoute: typeof RegisterRoute
+  SearchRoute: typeof SearchRoute
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
-    '/Buttons': {
-      id: '/Buttons'
-      path: '/Buttons'
-      fullPath: '/Buttons'
-      preLoaderRoute: typeof ButtonsImport
-      parentRoute: typeof rootRoute
-    }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeImport
-      parentRoute: typeof rootRoute
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/register': {
       id: '/register'
       path: '/register'
       fullPath: '/register'
-      preLoaderRoute: typeof RegisterImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchImport
-      parentRoute: typeof rootRoute
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/Buttons': {
+      id: '/Buttons'
+      path: '/Buttons'
+      fullPath: '/Buttons'
+      preLoaderRoute: typeof ButtonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
-}
-
-// Create and export the route tree
-
-export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/Buttons': typeof ButtonsRoute
-  '/home': typeof HomeRoute
-  '/register': typeof RegisterRoute
-  '/search': typeof SearchRoute
-}
-
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/Buttons': typeof ButtonsRoute
-  '/home': typeof HomeRoute
-  '/register': typeof RegisterRoute
-  '/search': typeof SearchRoute
-}
-
-export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/Buttons': typeof ButtonsRoute
-  '/home': typeof HomeRoute
-  '/register': typeof RegisterRoute
-  '/search': typeof SearchRoute
-}
-
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/Buttons' | '/home' | '/register' | '/search'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/Buttons' | '/home' | '/register' | '/search'
-  id: '__root__' | '/' | '/Buttons' | '/home' | '/register' | '/search'
-  fileRoutesById: FileRoutesById
-}
-
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ButtonsRoute: typeof ButtonsRoute
-  HomeRoute: typeof HomeRoute
-  RegisterRoute: typeof RegisterRoute
-  SearchRoute: typeof SearchRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ButtonsRoute: ButtonsRoute,
+  AdminRoute: AdminRoute,
   HomeRoute: HomeRoute,
+  ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/Buttons",
-        "/home",
-        "/register",
-        "/search"
-      ]
-    },
-    "/": {
-      "filePath": "index.tsx"
-    },
-    "/Buttons": {
-      "filePath": "Buttons.tsx"
-    },
-    "/home": {
-      "filePath": "home.tsx"
-    },
-    "/register": {
-      "filePath": "register.tsx"
-    },
-    "/search": {
-      "filePath": "search.tsx"
-    }
-  }
-}
-ROUTE_MANIFEST_END */
