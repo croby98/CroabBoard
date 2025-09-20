@@ -22,6 +22,8 @@ const HomeButtons: React.FC = () => {
     const [buttonSize, setButtonSize] = useState(0);
     const [volume, setVolume] = useState(0.5);
     const [showVolumeControl, setShowVolumeControl] = useState(false);
+    const [buttonVolumes, setButtonVolumes] = useState<{[key: number]: number}>({});
+    const [showPerButtonVolume, setShowPerButtonVolume] = useState<{[key: number]: boolean}>({});
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [contextMenu, setContextMenu] = useState<{
@@ -87,7 +89,7 @@ const HomeButtons: React.FC = () => {
         }
     };
 
-    const PlaySound = (sound_filename?: string | null) => {
+    const PlaySound = (sound_filename?: string | null, imageId?: number) => {
         if (!sound_filename) {
             console.log('No sound filename provided');
             return;
@@ -98,7 +100,11 @@ const HomeButtons: React.FC = () => {
         
         if (audioRef.current) {
             audioRef.current.src = soundUrl;
-            audioRef.current.volume = volume;
+            // Use per-button volume if set, otherwise fall back to global volume
+            const buttonVolume = imageId && buttonVolumes[imageId] !== undefined 
+                ? buttonVolumes[imageId] 
+                : volume;
+            audioRef.current.volume = buttonVolume;
             audioRef.current.play().catch(error => {
                 console.error('Error playing sound:', error);
             });
@@ -111,24 +117,28 @@ const HomeButtons: React.FC = () => {
         fetchUserButtons();
     }, []);
 
-    const PlayAK47Sound = (sound_filename: string) => {
+    const PlayAK47Sound = (sound_filename: string, imageId?: number) => {
         if (!sound_filename) return;
         const soundUrl = `${apiUrlSoundFiles}${sound_filename}`;
         if (audioRef.current) {
             audioRef.current.src = soundUrl;
             audioRef.current.currentTime = 0;
-            audioRef.current.volume = volume;
+            // Use per-button volume if set, otherwise fall back to global volume
+            const buttonVolume = imageId && buttonVolumes[imageId] !== undefined 
+                ? buttonVolumes[imageId] 
+                : volume;
+            audioRef.current.volume = buttonVolume;
             audioRef.current.play();
         }
     };
 
     // Start spamming
-    const startSpammingAK47Sound = (sound_filename: string) => {
+    const startSpammingAK47Sound = (sound_filename: string, imageId?: number) => {
           if (intervalId) clearInterval(intervalId);
 
           playCount = 0;
           intervalId = setInterval(() => {
-               PlayAK47Sound(sound_filename);
+               PlayAK47Sound(sound_filename, imageId);
                playCount++;
                if (playCount >= 47) {
                     if (intervalId) clearInterval(intervalId);
@@ -166,7 +176,9 @@ const HomeButtons: React.FC = () => {
 
     const handleAK47 = () => {
         if (contextMenu?.soundFilename) {
-        startSpammingAK47Sound(contextMenu.soundFilename);
+            // Find the button to get its image ID for volume
+            const button = buttons.find(b => b.sound_filename === contextMenu.soundFilename);
+            startSpammingAK47Sound(contextMenu.soundFilename, button?.image_id);
         }
         handleCloseContextMenu();
     };
@@ -251,7 +263,7 @@ const HomeButtons: React.FC = () => {
                     {buttons.map((button, idx) => (
                         <div
                             key={button.image_id}
-                            className="border-3 rounded shadow hover:shadow-lg sound-button"
+                            className="border-3 rounded shadow hover:shadow-lg sound-button relative"
                             style={{ borderColor: button.category_color, opacity: draggedIndex === idx ? 0.5 : 1 }}
                             draggable
                             onDragStart={() => handleDragStart(idx)}
@@ -263,10 +275,52 @@ const HomeButtons: React.FC = () => {
                                 src={`${apiUrlImagesFiles}${button.image_filename}`}
                                 alt={button.button_name}
                                 loading="lazy"
-                                onClick={() => PlaySound(button.sound_filename)}
+                                onClick={() => PlaySound(button.sound_filename, button.image_id)}
                                 onContextMenu={e => handleContextMenu(e, button.image_id, button.sound_filename)}
                                 style={{ height: buttonSize, width: buttonSize, cursor: 'pointer' }}
                             />
+                            
+                            {/* Per-button volume control */}
+                            <button
+                                className="absolute top-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1 py-0.5 rounded hover:bg-opacity-90"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowPerButtonVolume(prev => ({
+                                        ...prev,
+                                        [button.image_id]: !prev[button.image_id]
+                                    }));
+                                }}
+                            >
+                                🔊
+                            </button>
+                            
+                            {/* Volume slider for this button */}
+                            {showPerButtonVolume[button.image_id] && (
+                                <div className="absolute top-8 right-1 bg-gray-800 p-2 rounded shadow-lg z-10 min-w-32">
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xs text-white">0</span>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.1"
+                                            value={buttonVolumes[button.image_id] ?? volume}
+                                            onChange={(e) => {
+                                                const newVolume = parseFloat(e.target.value);
+                                                setButtonVolumes(prev => ({
+                                                    ...prev,
+                                                    [button.image_id]: newVolume
+                                                }));
+                                            }}
+                                            className="flex-1"
+                                        />
+                                        <span className="text-xs text-white">1</span>
+                                    </div>
+                                    <div className="text-xs text-white text-center mt-1">
+                                        {Math.round((buttonVolumes[button.image_id] ?? volume) * 100)}%
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
                     {/* Custom Context Menu */}

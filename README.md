@@ -34,6 +34,7 @@ CroabBoard-Rework is a modern, full-featured soundboard application built for se
 - [x] **File processing** (✅ Multer middleware with proper storage)
 - [x] **Bulk sound operations** (✅ Bulk delete/link operations via API)
 - [x] **Sound quality controls** (✅ User-adjustable volume control)
+- [x] **Category color customization** (✅ Visual category borders on buttons)
 
 ### 🏠 Core Pages & UI
 - [x] **Login page** (✅ Username/Password with session persistence)
@@ -60,11 +61,12 @@ CroabBoard-Rework is a modern, full-featured soundboard application built for se
 - [x] **File Upload System** (Multer middleware configured)
 - [x] **CORS Configuration** (Frontend-backend communication)
 
-### 🎯 Potential Features to Add
+### 🎯 Features to Add
 
 #### 🎵 Audio & Playback Features
-- [ ] Volume control for individual buttons
+- [x] **Per-button volume control** (✅ Individual volume sliders for each button)
 - [ ] Audio fade in/out effects
+- [ ] Remove general sound control and replace it with the player 
 - [ ] Audio visualization (waveform display)
 - [ ] Crossfade between sounds
 - [ ] Audio recording directly in browser
@@ -90,7 +92,6 @@ CroabBoard-Rework is a modern, full-featured soundboard application built for se
 - [ ] Sound history tracking
 - [ ] Advanced search filters (by date, size, duration)
 - [ ] Bulk category assignment
-- [ ] Category color customization
 - [ ] Nested categories/subcategories
 - [ ] Tags system for buttons
 - [ ] Smart playlists/collections
