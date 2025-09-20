@@ -21,8 +21,8 @@ const SearchButtons: React.FC = () => {
     const [buttonSize, setButtonSize] = useState(150);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const apiUrlImagesFiles = 'http://localhost:5000/api/files/image/';
-    const apiUrlSoundFiles = 'http://localhost:5000/api/files/sound/';
+    const apiUrlImagesFiles = 'http://localhost:5000/uploads/images/';
+    const apiUrlSoundFiles = 'http://localhost:5000/uploads/audio/';
 
     // Function to fetch buttons based on category
     const fetchButtons = async (category: string) => {

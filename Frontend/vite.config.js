@@ -12,13 +12,20 @@ export default defineConfig({
     viteReact(),
     tailwindcss(),
   ],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-  },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
     },
   },
+  server: {
+    port: 3000,
+    host: true,
+    strictPort: true
+  },
+  build: {
+    target: 'esnext',
+    rollupOptions: {
+      external: []
+    }
+  }
 })

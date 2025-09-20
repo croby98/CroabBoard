@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 interface User {
     id: number;
@@ -25,6 +26,7 @@ interface SystemStats {
 }
 
 const AdminDashboard: React.FC = () => {
+    const { user } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [deletedHistory, setDeletedHistory] = useState<DeletedButton[]>([]);
     const [stats, setStats] = useState<SystemStats | null>(null);
@@ -32,6 +34,18 @@ const AdminDashboard: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'deleted'>('overview');
+
+    // Access control - only allow Croby to access admin dashboard
+    if (!user || user.username !== 'Croby') {
+        return (
+            <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+                    <p className="text-gray-400">You do not have permission to access the admin dashboard.</p>
+                </div>
+            </div>
+        );
+    }
 
     useEffect(() => {
         fetchDashboardData();

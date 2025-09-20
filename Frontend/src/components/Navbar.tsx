@@ -16,15 +16,13 @@ export const Navbar: React.FC = () => {
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
 
-    const { logout } = useAuth(); // Access the `logout` method from AuthContext
+    const { user, logout } = useAuth(); // Access the `logout` method from AuthContext
     const navigate = useNavigate();
 
     const location = useLocation(); // Get the current location from React Router
     const [navigation, setNavigation] = useState([
         { name: 'Home', href: '/home', current: false },
         { name: 'Buttons', href: '/buttons', current: false },
-        { name: 'Categories', href: '/search', current: false },
-        { name: 'Admin', href: '/admin', current: false },
     ]);
 
     // Update the current state in navigation based on the active path
@@ -128,6 +126,17 @@ export const Navbar: React.FC = () => {
                                             Profile
                                         </a>
                                     </MenuItem>
+                                    {/* Admin menu - only show for Croby */}
+                                    {user?.username === 'Croby' && (
+                                        <MenuItem>
+                                            <a
+                                                href="/admin"
+                                                className="block px-4 py-2 text-sm w-full text-center text-gray-100 data-focus:bg-gray-900 data-focus:outline-hidden"
+                                            >
+                                                Admin
+                                            </a>
+                                        </MenuItem>
+                                    )}
                                     <MenuItem>
                                         <button
                                             onClick={handleLogout}

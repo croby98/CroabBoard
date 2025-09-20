@@ -9,8 +9,8 @@ interface Button {
     category_color: string;
 }
 
-const apiUrlImagesFiles = 'http://localhost:5000/api/files/image/';
-const apiUrlSoundFiles = 'http://localhost:5000/api/files/sound/';
+const apiUrlImagesFiles = 'http://localhost:5000/uploads/images/';
+const apiUrlSoundFiles = 'http://localhost:5000/uploads/audio/';
 
 let playCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -34,19 +34,51 @@ const HomeButtons: React.FC = () => {
     const fetchUserButtons = async () => {
         setLoading(true);
         setErrorMessage('');
+        console.log('Fetching user buttons...');
+        
         try {
-            const response = await fetch('http://localhost:5000/api/index', {
+            const response = await fetch('http://localhost:5000/api/linked', {
                 method: 'GET',
                 credentials: 'include',
             });
             const data = await response.json();
+            
+            console.log('Linked buttons response:', response.status, data);
+            
             if (response.ok && data.success) {
-                setButtons(data.buttons || []);
-                setButtonSize(data.btn_size || 150);
+                console.log('Found buttons:', data.linked.length);
+                console.log('First button sample:', data.linked[0]);
+                
+                // Transform the data to match the expected format
+                const transformedButtons = data.linked.map((button: any) => ({
+                    image_id: button.image_id,
+                    uploaded_id: button.uploaded_id,
+                    button_name: button.button_name || 'Untitled',
+                    image_filename: button.image_filename,
+                    sound_filename: button.sound_filename,
+                    category_color: button.category_color || '#3B82F6'
+                }));
+                
+                console.log('Transformed first button:', transformedButtons[0]);
+                console.log('Image URL will be:', `${apiUrlImagesFiles}${transformedButtons[0]?.image_filename}`);
+                console.log('Sound URL will be:', `${apiUrlSoundFiles}${transformedButtons[0]?.sound_filename}`);
+                
+                setButtons(transformedButtons);
+                
+                // Get user button size from /api/me endpoint
+                const userResponse = await fetch('http://localhost:5000/api/me', {
+                    credentials: 'include'
+                });
+                const userData = await userResponse.json();
+                if (userData.success) {
+                    setButtonSize(userData.user?.btnSize || 150);
+                }
             } else {
+                console.error('Failed to fetch buttons:', data.message);
                 setErrorMessage(data.message || 'Failed to fetch user buttons');
             }
         } catch (error: any) {
+            console.error('Error fetching buttons:', error);
             setErrorMessage(error.message || 'Something went wrong.');
         } finally {
             setLoading(false);
@@ -54,12 +86,22 @@ const HomeButtons: React.FC = () => {
     };
 
     const PlaySound = (sound_filename?: string | null) => {
-        if (!sound_filename) return;
+        if (!sound_filename) {
+            console.log('No sound filename provided');
+            return;
+        }
+        
         const soundUrl = `${apiUrlSoundFiles}${sound_filename}`;
+        console.log('Playing sound:', soundUrl);
+        
         if (audioRef.current) {
             audioRef.current.src = soundUrl;
             audioRef.current.volume = 0.5;
-            audioRef.current.play();
+            audioRef.current.play().catch(error => {
+                console.error('Error playing sound:', error);
+            });
+        } else {
+            console.error('Audio ref not available');
         }
     };
 

@@ -19,6 +19,7 @@ interface Button {
 const ProfilePage: React.FC = () => {
     const { logout } = useAuth();
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [username, setUsername] = useState('');
     const [buttons, setButtons] = useState<Button[]>([]);
     const [buttonSize, setButtonSize] = useState(150);
     const [newPassword, setNewPassword] = useState('');
@@ -27,7 +28,7 @@ const ProfilePage: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
 
-    const apiUrlImagesFiles = 'http://localhost:5000/api/files/image/';
+    const apiUrlImagesFiles = 'http://localhost:5000/uploads/images/';
 
     useEffect(() => {
         fetchProfile();
@@ -36,34 +37,33 @@ const ProfilePage: React.FC = () => {
     const fetchProfile = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/profil', {
+            // Get user info first
+            const userResponse = await fetch('http://localhost:5000/api/me', {
                 method: 'GET',
                 credentials: 'include',
             });
+            const userData = await userResponse.json();
+            if (userData.success) {
+                setUsername(userData.user.username);
+            }
 
-            const data = await response.json();
-            if (response.ok && data.success) {
-                setButtons(data.buttons || []);
-                setButtonSize(data.btn_size || 150);
-                
-                // Get current user info
-                const userResponse = await fetch('http://localhost:5000/api/me', {
-                    method: 'GET',
-                    credentials: 'include',
-                });
-                const userData = await userResponse.json();
-                if (userResponse.ok && userData.success) {
-                    setProfile({
-                        id: userData.user.id,
-                        username: userData.user.username,
-                        btn_size: data.btn_size || 150
-                    });
-                }
+            // Get profile data (matches Python Flask /api/profil)
+            const profileResponse = await fetch('http://localhost:5000/api/profil', {
+                method: 'GET',
+                credentials: 'include',
+            });
+            const profileData = await profileResponse.json();
+            
+            if (profileResponse.ok && profileData.success) {
+                console.log('User uploaded buttons:', profileData.buttons.length);
+                setButtons(profileData.buttons || []);
+                setButtonSize(profileData.btn_size || 150);
             } else {
-                setErrorMessage(data.message || 'Failed to fetch profile');
+                setErrorMessage('Failed to fetch profile data');
             }
         } catch (error: any) {
-            setErrorMessage(error.message || 'Something went wrong');
+            console.error('Profile fetch error:', error);
+            setErrorMessage(error.message || 'Something went wrong.');
         } finally {
             setLoading(false);
         }
@@ -181,22 +181,16 @@ const ProfilePage: React.FC = () => {
                     <div className="lg:col-span-1">
                         <div className="bg-gray-800 rounded-lg p-6">
                             <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
-                            {profile && (
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="text-gray-400 text-sm">Username</label>
-                                        <p className="text-white font-medium">{profile.username}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-gray-400 text-sm">User ID</label>
-                                        <p className="text-white font-medium">{profile.id}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-gray-400 text-sm">Total Buttons</label>
-                                        <p className="text-white font-medium">{buttons.length}</p>
-                                    </div>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-gray-400 text-sm">Username</label>
+                                    <p className="text-white font-medium">{username}</p>
                                 </div>
-                            )}
+                                <div>
+                                    <label className="text-gray-400 text-sm">Total Uploaded Buttons</label>
+                                    <p className="text-white font-medium">{buttons.length}</p>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Button Size Settings */}

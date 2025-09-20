@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 interface Button {
+    id: number; // uploaded_id from the database
     image_id: number;
     sound_id: number;
     button_name: string;
@@ -10,8 +11,8 @@ interface Button {
     category_color?: string;
 }
 
-const apiUrlImagesFiles = "http://localhost:5000/api/files/image/";
-const apiUrlSoundFiles = "http://localhost:5000/api/files/sound/";
+const apiUrlImagesFiles = "http://localhost:5000/uploads/images/";
+const apiUrlSoundFiles = "http://localhost:5000/uploads/audio/";
 
 const Buttons: React.FC = () => {
     const [buttons, setButtons] = useState<Button[]>([]);
@@ -24,11 +25,28 @@ const Buttons: React.FC = () => {
     useEffect(() => {
         const fetchButtons = async () => {
             try {
-                const res = await fetch("http://localhost:5000/api/buttons", { credentials: "include" });
+                const res = await fetch("http://localhost:5000/api/uploaded", { credentials: "include" });
                 const data = await res.json();
                 if (data.success) {
-                    setButtons(data.buttons || []);
-                    setBtnSize(data.btn_size || 150);
+                    // Transform uploaded data to match Button interface
+                    const transformedButtons = data.uploaded.map((button: any) => ({
+                        id: button.id, // uploaded_id
+                        image_id: button.image_id,
+                        sound_id: button.sound_id,
+                        button_name: button.button_name || 'Untitled',
+                        image_filename: button.image_filename,
+                        sound_filename: button.sound_filename,
+                        category: button.category_name,
+                        category_color: button.category_color || '#3B82F6'
+                    }));
+                    setButtons(transformedButtons);
+                    
+                    // Get user button size
+                    const userRes = await fetch("http://localhost:5000/api/me", { credentials: "include" });
+                    const userData = await userRes.json();
+                    if (userData.success) {
+                        setBtnSize(userData.user?.btnSize || 150);
+                    }
                 } else {
                     setErrorMessage(data.message || "Failed to fetch buttons");
                 }
@@ -43,10 +61,11 @@ const Buttons: React.FC = () => {
     useEffect(() => {
         const fetchChecked = async () => {
             try {
-                const res = await fetch("http://localhost:5000/api/getchecked", { credentials: "include" });
+                const res = await fetch("http://localhost:5000/api/linked", { credentials: "include" });
                 const data = await res.json();
-                if (data.ids) {
-                    setCheckedIds(data.ids.map((b: { id: number }) => b.id));
+                if (data.success && data.linked) {
+                    // Extract the uploaded_ids from linked buttons
+                    setCheckedIds(data.linked.map((b: { uploaded_id: number }) => b.uploaded_id));
                 }
             } catch (e) {
                 // ignore
@@ -64,24 +83,28 @@ const Buttons: React.FC = () => {
         audioRef.current.play();
     };
 
-    // Checkbox handler
-    const handleCheckbox = async (checked: boolean, image_id: number, sound_id: number) => {
-        if (checked) {
-            await fetch(`http://localhost:5000/api/add_file/${image_id}/${sound_id}`, {
-                method: "POST",
-                credentials: "include",
-            });
-        } else {
-            await fetch(`http://localhost:5000/api/delete_image/${image_id}`, {
-                method: "DELETE",
-                credentials: "include",
-            });
-        }
-        // Refresh checked IDs
-        const res = await fetch("http://localhost:5000/api/getchecked", { credentials: "include" });
-        const data = await res.json();
-        if (data.ids) {
-            setCheckedIds(data.ids.map((b: { id: number }) => b.id));
+    // Checkbox handler - Link/Unlink button to user
+    const handleCheckbox = async (checked: boolean, uploadedId: number) => {
+        try {
+            if (checked) {
+                // Link button to user
+                await fetch(`http://localhost:5000/api/link`, {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: "include",
+                    body: JSON.stringify({ uploadedId, tri: 0 })
+                });
+                setCheckedIds([...checkedIds, uploadedId]);
+            } else {
+                // Unlink button from user
+                await fetch(`http://localhost:5000/api/link/${uploadedId}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+                setCheckedIds(checkedIds.filter(id => id !== uploadedId));
+            }
+        } catch (error) {
+            console.error('Error linking/unlinking button:', error);
         }
     };
 
@@ -109,8 +132,8 @@ const Buttons: React.FC = () => {
                             <input
                                 className="mt-2 mb-2"
                                 type="checkbox"
-                                checked={checkedIds.includes(button.image_id)}
-                                onChange={e => handleCheckbox(e.target.checked, button.image_id, button.sound_id)}
+                                checked={checkedIds.includes(button.id)}
+                                onChange={e => handleCheckbox(e.target.checked, button.id)}
                             />
                         </div>
                     </div>
