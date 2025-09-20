@@ -21,25 +21,17 @@ CroabBoard-Rework is a feature-rich soundboard designed for easy sound managemen
 - [x] Admin dashboard
 - [x] Search by categories (primary function)
 
-### ⏳ To Implement
-
-- [ ] ....
-
 ### 🎯 Potential Features to Add
 
 #### 🎵 Audio & Playback Features
 - [ ] Volume control for individual buttons
 - [ ] Audio fade in/out effects
-- [ ] Loop playback mode for buttons
 - [ ] Audio visualization (waveform display)
 - [ ] Crossfade between sounds
 - [ ] Audio recording directly in browser
-- [ ] Pitch adjustment for sounds
-- [ ] Audio trimming/editing tools
-- [ ] Multiple audio formats support (MP3, WAV, OGG, FLAC)
-- [ ] Audio compression/quality settings
 
 #### 🎨 UI/UX Enhancements
+- [ ] Better design
 - [ ] Dark/Light theme toggle
 - [ ] Custom color themes
 - [ ] Button animations and effects
@@ -52,15 +44,6 @@ CroabBoard-Rework is a feature-rich soundboard designed for easy sound managemen
 - [ ] Button glow effects
 - [ ] Drag & drop file upload
 - [ ] Bulk operations (select multiple buttons)
-
-#### 📱 Mobile & Responsive
-- [ ] Progressive Web App (PWA) support
-- [ ] Mobile-optimized touch controls
-- [ ] Swipe gestures for navigation
-- [ ] Offline mode support
-- [ ] Mobile app notifications
-- [ ] Touch haptic feedback
-- [ ] Mobile-specific layouts
 
 #### 🔧 Organization & Management
 - [ ] Favorites/Bookmarks system
@@ -76,29 +59,6 @@ CroabBoard-Rework is a feature-rich soundboard designed for easy sound managemen
 - [ ] Duplicate sound detection
 - [ ] Auto-categorization using AI
 
-#### 👥 Social & Sharing
-- [ ] Share buttons with other users
-- [ ] Public/Private button collections
-- [ ] User profiles and following system
-- [ ] Community soundboard marketplace
-- [ ] Rate and review sounds
-- [ ] Social media integration
-- [ ] Export soundboard as shareable link
-- [ ] Collaborative soundboards
-- [ ] User comments on sounds
-- [ ] Sound of the day/week features
-
-#### 🔒 Security & Privacy
-- [ ] Two-factor authentication (2FA)
-- [ ] OAuth login (Google, Discord, GitHub)
-- [ ] Privacy settings for sounds
-- [ ] Content moderation tools
-- [ ] GDPR compliance features
-- [ ] Account deletion/data export
-- [ ] IP-based access restrictions
-- [ ] Rate limiting for uploads
-- [ ] Spam detection
-
 #### 📊 Analytics & Insights
 - [ ] Usage analytics dashboard
 - [ ] Most played sounds statistics
@@ -109,70 +69,26 @@ CroabBoard-Rework is a feature-rich soundboard designed for easy sound managemen
 - [ ] User engagement metrics
 - [ ] Export analytics data
 
-#### 🔄 Import/Export & Integration
-- [ ] Backup/restore functionality
-- [ ] Import from other soundboard apps
-- [ ] Export to various formats
-- [ ] API for third-party integrations
-- [ ] Webhook support
-- [ ] Discord bot integration
-- [ ] Twitch/OBS integration
-- [ ] Spotify/YouTube integration
-- [ ] Cloud storage sync (Google Drive, Dropbox)
-- [ ] CSV/JSON data export
-
-#### 🎮 Gaming & Streaming Features
-- [ ] Hotkey bindings for streamers
-- [ ] OBS Studio plugin
-- [ ] Stream deck integration
-- [ ] Gaming overlay mode
-- [ ] Voice activation triggers
-- [ ] Auto-play based on game events
-- [ ] Tournament/competition mode
-- [ ] Live streaming integration
-
-#### 🤖 AI & Automation
-- [ ] AI-powered sound recommendations
-- [ ] Auto-tagging using machine learning
-- [ ] Voice-to-text for sound descriptions
-- [ ] Smart categorization
-- [ ] Duplicate detection AI
-- [ ] Content filtering AI
-- [ ] Auto-generated sound previews
-- [ ] Mood-based sound suggestions
-
 #### 🔧 Technical Improvements
-- [ ] Real-time collaboration
-- [ ] WebSocket support for live updates
 - [ ] Caching improvements
-- [ ] CDN integration
 - [ ] Database optimization
-- [ ] Multi-language support (i18n)
-- [ ] Accessibility improvements (WCAG compliance)
 - [ ] Performance monitoring
 - [ ] Error tracking and reporting
 - [ ] Automated testing suite
 - [ ] Docker containerization
-- [ ] Kubernetes deployment
 
-#### 📧 Communication & Notifications
-- [ ] Email notifications
-- [ ] Push notifications
-- [ ] In-app messaging system
-- [ ] Announcement system
-- [ ] Newsletter integration
-- [ ] SMS notifications
-- [ ] Slack/Discord notifications
-
-#### 💰 Monetization (Optional)
-- [ ] Premium user tiers
-- [ ] Subscription management
-- [ ] Payment processing
-- [ ] Usage-based billing
-- [ ] Premium sound packs
-- [ ] Ad-supported free tier
-- [ ] Donation/tip system
-
+##### FUTURE 
+  #### 👥 Social & Sharing
+  - [ ] Share buttons with other users
+  - [ ] Public/Private button collections
+  - [ ] User profiles and following system
+  - [ ] Community soundboard marketplace
+  - [ ] Rate and review sounds
+  - [ ] Social media integration
+  - [ ] Export soundboard as shareable link
+  - [ ] Collaborative soundboards
+  - [ ] User comments on sounds
+  - [ ] Sound of the day/week features
 ---
 
 ### 🎯 How to Request Features
