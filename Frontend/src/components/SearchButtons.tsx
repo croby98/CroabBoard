@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { searchButtonsByCategory } from '@/api/api';
 import debounce from 'lodash.debounce';
+import { useRef } from 'react';
 
 interface Button {
     image_id: number;
@@ -17,6 +18,11 @@ const SearchButtons: React.FC = () => {
     const [buttons, setButtons] = useState<Button[]>([]); // Fetched buttons
     const [errorMessage, setErrorMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [buttonSize, setButtonSize] = useState(150);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const apiUrlImagesFiles = 'http://localhost:5000/api/files/image/';
+    const apiUrlSoundFiles = 'http://localhost:5000/api/files/sound/';
 
     // Function to fetch buttons based on category
     const fetchButtons = async (category: string) => {
@@ -53,8 +59,17 @@ const SearchButtons: React.FC = () => {
         };
     }, [category]);
 
+    const playSound = (soundFilename?: string | null) => {
+        if (!soundFilename || !audioRef.current) return;
+        const soundUrl = `${apiUrlSoundFiles}${soundFilename}`;
+        audioRef.current.src = soundUrl;
+        audioRef.current.volume = 0.5;
+        audioRef.current.play();
+    };
+
     return (
         <div className="flex flex-col justify-center items-center p-4 text-white">
+            <audio ref={audioRef} controls className="mb-4" />
             <h1 className="text-xl font-bold mb-4">Search Buttons by Category</h1>
             <div className="mb-4">
                 <input
@@ -62,30 +77,35 @@ const SearchButtons: React.FC = () => {
                     placeholder="Enter category name"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="border rounded p-2 mr-2"
+                    className="border rounded p-2 mr-2 bg-gray-700 text-white border-gray-600"
                 />
                 {loading && <span className="text-gray-500 ml-2">Loading...</span>}
             </div>
             {errorMessage && <p className="text-red-500">{errorMessage}</p>}
             {buttons.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-wrap gap-4 justify-center">
                     {buttons.map((button) => (
                         <div
                             key={button.image_id}
-                            className="p-4 border rounded shadow hover:shadow-lg"
+                            className="border-3 rounded shadow hover:shadow-lg sound-button text-center bg-gray-800"
                         >
-                            <p className="font-bold">{button.button_name}</p>
-                            <p>Category: {button.category}</p>
-                            <p>Image ID: {button.image_id}</p>
-                            {button.sound_id && (
-                                <p>Sound ID: {button.sound_id}</p>
-                            )}
-                            <p>Order: {button.tri}</p>
+                            <img
+                                className="object-cover cursor-pointer"
+                                src={`${apiUrlImagesFiles}${button.image_filename}`}
+                                alt={button.button_name}
+                                loading="lazy"
+                                onClick={() => playSound(button.sound_filename)}
+                                style={{ height: buttonSize, width: buttonSize }}
+                            />
+                            <div className="p-2">
+                                <p className="font-bold text-sm">{button.button_name}</p>
+                                <p className="text-xs text-gray-400">Category: {button.category}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                !loading && <p>No buttons found for the specified category.</p>
+                !loading && category.trim() && <p>No buttons found for the specified category.</p>
             )}
         </div>
     );

@@ -24,6 +24,7 @@ export const Navbar: React.FC = () => {
         { name: 'Home', href: '/home', current: false },
         { name: 'Buttons', href: '/buttons', current: false },
         { name: 'Categories', href: '/search', current: false },
+        { name: 'Admin', href: '/admin', current: false },
     ]);
 
     // Update the current state in navigation based on the active path
@@ -121,10 +122,10 @@ export const Navbar: React.FC = () => {
                                 >
                                     <MenuItem>
                                         <a
-                                            href="#"
+                                            href="/profile"
                                             className="block px-4 py-2 text-sm w-full text-center text-gray-100 data-focus:bg-gray-900 data-focus:outline-hidden"
                                         >
-                                            Profil
+                                            Profile
                                         </a>
                                     </MenuItem>
                                     <MenuItem>

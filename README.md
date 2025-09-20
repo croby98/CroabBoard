@@ -16,13 +16,13 @@ CroabBoard-Rework is a feature-rich soundboard designed for easy sound managemen
 - [x] Context menu for interval sound playback
 - [x] Buttons page to view all sound buttons
 - [x] Add or remove buttons from user collection
+- [x] Upload new sounds
+- [x] User profile page
+- [x] Admin dashboard
+- [x] Search by categories (primary function)
 
 ### ⏳ To Implement
 
-- [ ] Upload new sounds
-- [ ] User profile page
-- [ ] Admin dashboard
-- [ ] Search by categories (primary function)
 - [ ] ....
 ---
 
