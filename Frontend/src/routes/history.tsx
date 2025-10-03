@@ -1,27 +1,36 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { usePlayHistory } from '../hooks/usePlayHistory';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 export const Route = createFileRoute('/history')({
     component: HistoryPage,
 });
 
 function HistoryPage() {
-    const { history, loading, error, clearHistory } = usePlayHistory();
+    const { history, loading, error, clearHistory, fetchHistory } = usePlayHistory();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [filter, setFilter] = useState<'all' | 'today' | 'week'>('all');
+    const [showClearModal, setShowClearModal] = useState(false);
+
+    // Fetch history when component mounts
+    useEffect(() => {
+        fetchHistory();
+    }, []);
 
     const handlePlay = (soundUrl: string) => {
         if (audioRef.current) {
-            audioRef.current.src = soundUrl;
+            // Convert relative URL to absolute URL
+            const absoluteUrl = soundUrl.startsWith('http')
+                ? soundUrl
+                : `http://localhost:5000${soundUrl}`;
+            audioRef.current.src = absoluteUrl;
             audioRef.current.play();
         }
     };
 
-    const handleClearHistory = async () => {
-        if (confirm('Êtes-vous sûr de vouloir effacer tout l\'historique ?')) {
-            await clearHistory();
-        }
+    const confirmClearHistory = async () => {
+        await clearHistory();
+        setShowClearModal(false);
     };
 
     const formatDate = (dateString: string) => {
@@ -125,7 +134,7 @@ function HistoryPage() {
                     {/* Clear Button */}
                     {history.length > 0 && (
                         <button
-                            onClick={handleClearHistory}
+                            onClick={() => setShowClearModal(true)}
                             className="btn btn-error btn-outline"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -169,7 +178,13 @@ function HistoryPage() {
                                 {/* Image */}
                                 <div className="avatar">
                                     <div className="w-16 h-16 rounded-lg">
-                                        <img src={entry.imageUrl} alt={entry.button_name} />
+                                        <img
+                                            src={entry.imageUrl?.startsWith('http')
+                                                ? entry.imageUrl
+                                                : `http://localhost:5000${entry.imageUrl}`
+                                            }
+                                            alt={entry.button_name}
+                                        />
                                     </div>
                                 </div>
 
@@ -195,6 +210,33 @@ function HistoryPage() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Clear History Confirmation Modal */}
+            {showClearModal && (
+                <div className="modal modal-open">
+                    <div className="modal-box">
+                        <h3 className="font-bold text-lg mb-4">Effacer l'historique</h3>
+                        <p className="py-4">
+                            Êtes-vous sûr de vouloir effacer tout l'historique ?<br />
+                            <span className="text-warning">Cette action est irréversible.</span>
+                        </p>
+                        <div className="modal-action">
+                            <button
+                                className="btn btn-ghost"
+                                onClick={() => setShowClearModal(false)}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                className="btn btn-error"
+                                onClick={confirmClearHistory}
+                            >
+                                Effacer tout
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

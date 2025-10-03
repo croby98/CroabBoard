@@ -48,7 +48,11 @@ function StatisticsPage() {
 
     const handlePlay = (soundUrl: string) => {
         if (audioRef.current) {
-            audioRef.current.src = soundUrl;
+            // Convert relative URL to absolute URL
+            const absoluteUrl = soundUrl?.startsWith('http')
+                ? soundUrl
+                : `http://localhost:5000${soundUrl}`;
+            audioRef.current.src = absoluteUrl;
             audioRef.current.play();
         }
     };
@@ -135,7 +139,13 @@ function StatisticsPage() {
                                 {/* Image */}
                                 <div className="avatar">
                                     <div className="w-20 h-20 rounded-lg">
-                                        <img src={button.imageUrl} alt={button.button_name} />
+                                        <img
+                                            src={button.imageUrl?.startsWith('http')
+                                                ? button.imageUrl
+                                                : `http://localhost:5000${button.imageUrl}`
+                                            }
+                                            alt={button.button_name}
+                                        />
                                     </div>
                                 </div>
 

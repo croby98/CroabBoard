@@ -62,7 +62,8 @@ export const useButtonVolume = () => {
 
     useEffect(() => {
         fetchVolumes();
-    }, [fetchVolumes]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only fetch once on mount
 
     return {
         volumes,

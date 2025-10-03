@@ -69,8 +69,12 @@ const VolumeSlider: React.FC<VolumeSliderProps> = ({
     };
 
     return (
-        <div className={`flex items-center gap-2 ${className}`} onClick={(e) => e.stopPropagation()}>
-            <div className="text-base-content/60">
+        <div
+            className={`flex items-center gap-1.5 ${className}`}
+            onClick={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.stopPropagation()}
+        >
+            <div className="text-white/80 flex-shrink-0">
                 {getVolumeIcon()}
             </div>
             <input
@@ -80,10 +84,10 @@ const VolumeSlider: React.FC<VolumeSliderProps> = ({
                 step="0.05"
                 value={volume}
                 onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                className="range range-xs range-primary flex-1"
+                className="range range-xs range-primary flex-1 min-w-0"
                 disabled={isChanging}
             />
-            <span className="text-xs text-base-content/60 w-10 text-right">
+            <span className="text-xs text-white/80 w-8 text-right flex-shrink-0">
                 {Math.round(volume * 100)}%
             </span>
         </div>

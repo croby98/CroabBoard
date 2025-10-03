@@ -38,18 +38,10 @@ export const useFavorites = () => {
         }
     }, []);
 
-    const isFavorite = useCallback(async (uploadedId: number): Promise<boolean> => {
-        try {
-            const response = await fetch(`http://localhost:5000/api/favorite/${uploadedId}`, {
-                credentials: 'include',
-            });
-            const data = await response.json();
-            return data.isFavorite || false;
-        } catch (err) {
-            console.error('Error checking favorite:', err);
-            return false;
-        }
-    }, []);
+    const isFavorite = useCallback((uploadedId: number): boolean => {
+        // Check if the uploadedId exists in the favorites array
+        return favorites.some(fav => fav.id === uploadedId);
+    }, [favorites]);
 
     const addFavorite = useCallback(async (uploadedId: number) => {
         try {
@@ -110,7 +102,8 @@ export const useFavorites = () => {
 
     useEffect(() => {
         fetchFavorites();
-    }, [fetchFavorites]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only fetch once on mount
 
     return {
         favorites,

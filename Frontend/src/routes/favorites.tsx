@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useFavorites } from '../hooks/useFavorites';
 import { usePlayHistory } from '../hooks/usePlayHistory';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 export const Route = createFileRoute('/favorites')({
     component: FavoritesPage,
@@ -11,18 +11,28 @@ function FavoritesPage() {
     const { favorites, loading, error, removeFavorite } = useFavorites();
     const { recordPlay } = usePlayHistory();
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [itemToRemove, setItemToRemove] = useState<{ id: number; name: string } | null>(null);
 
     const handlePlay = async (soundUrl: string, uploadedId: number) => {
         if (audioRef.current) {
-            audioRef.current.src = soundUrl;
+            // Convert relative URL to absolute URL
+            const absoluteUrl = soundUrl?.startsWith('http')
+                ? soundUrl
+                : `http://localhost:5000${soundUrl}`;
+            audioRef.current.src = absoluteUrl;
             audioRef.current.play();
             await recordPlay(uploadedId);
         }
     };
 
-    const handleRemoveFavorite = async (uploadedId: number) => {
-        if (confirm('Retirer ce bouton des favoris ?')) {
-            await removeFavorite(uploadedId);
+    const openRemoveModal = (uploadedId: number, buttonName: string) => {
+        setItemToRemove({ id: uploadedId, name: buttonName });
+    };
+
+    const confirmRemove = async () => {
+        if (itemToRemove) {
+            await removeFavorite(itemToRemove.id);
+            setItemToRemove(null);
         }
     };
 
@@ -95,7 +105,10 @@ function FavoritesPage() {
                                     onClick={() => handlePlay(favorite.soundUrl, favorite.id)}
                                 >
                                     <img
-                                        src={favorite.imageUrl}
+                                        src={favorite.imageUrl?.startsWith('http')
+                                            ? favorite.imageUrl
+                                            : `http://localhost:5000${favorite.imageUrl}`
+                                        }
                                         alt={favorite.button_name}
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
                                     />
@@ -127,7 +140,7 @@ function FavoritesPage() {
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        handleRemoveFavorite(favorite.id);
+                                        openRemoveModal(favorite.id, favorite.button_name);
                                     }}
                                     className="btn btn-sm btn-ghost btn-circle absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="Retirer des favoris"
@@ -144,6 +157,32 @@ function FavoritesPage() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Remove Confirmation Modal */}
+            {itemToRemove && (
+                <div className="modal modal-open">
+                    <div className="modal-box">
+                        <h3 className="font-bold text-lg mb-4">Retirer des favoris</h3>
+                        <p className="py-4">
+                            Êtes-vous sûr de vouloir retirer <strong>{itemToRemove.name}</strong> de vos favoris ?
+                        </p>
+                        <div className="modal-action">
+                            <button
+                                className="btn btn-ghost"
+                                onClick={() => setItemToRemove(null)}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                className="btn btn-error"
+                                onClick={confirmRemove}
+                            >
+                                Retirer
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -450,8 +450,10 @@ export class Favorite {
     );
     return result.affectedRows > 0;
   }
+  
 
   static async getUserFavorites(userId) {
+   
     const [rows] = await pool.execute(`
       SELECT u.*,
              img.filename as image_filename,
@@ -491,7 +493,11 @@ export class PlayHistory {
   }
 
   static async getUserHistory(userId, limit = 50) {
-    const [rows] = await pool.execute(`
+    // Ensure limit is a valid integer and sanitize it
+    const validLimit = Math.max(1, Math.min(parseInt(limit, 10) || 50, 1000));
+
+    // Use query() with template literal for LIMIT (safe since we validated it)
+    const [rows] = await pool.query(`
       SELECT u.*,
              img.filename as image_filename,
              snd.filename as sound_filename,
@@ -504,13 +510,17 @@ export class PlayHistory {
       LEFT JOIN category cat ON u.category_id = cat.id
       WHERE ph.user_id = ?
       ORDER BY ph.played_at DESC
-      LIMIT ?
-    `, [userId, limit]);
+      LIMIT ${validLimit}
+    `, [userId]);
     return rows;
   }
 
-  static async getRecentlyPlayed(userId, limit = 10) {
-    const [rows] = await pool.execute(`
+  static async getRecentlyPlayed(userId, limit = 100) {
+    // Ensure limit is a valid integer and sanitize it
+    const validLimit = Math.max(1, Math.min(parseInt(limit, 10) || 100, 1000));
+
+    // Use query() with template literal for LIMIT (safe since we validated it)
+    const [rows] = await pool.query(`
       SELECT DISTINCT u.*,
              img.filename as image_filename,
              snd.filename as sound_filename,
@@ -524,8 +534,8 @@ export class PlayHistory {
       WHERE ph.user_id = ?
       GROUP BY u.id
       ORDER BY last_played DESC
-      LIMIT ?
-    `, [userId, limit]);
+      LIMIT ${validLimit}
+    `, [userId]);
     return rows;
   }
 
@@ -567,7 +577,11 @@ export class ButtonStats {
   }
 
   static async getMostPlayed(limit = 20) {
-    const [rows] = await pool.execute(`
+    // Ensure limit is a valid integer and sanitize it (prevent SQL injection)
+    const validLimit = Math.max(1, Math.min(parseInt(limit, 10) || 20, 1000));
+
+    // Use query() instead of execute() and interpolate LIMIT directly (it's safe since we validated it)
+    const [rows] = await pool.query(`
       SELECT u.*,
              img.filename as image_filename,
              snd.filename as sound_filename,
@@ -579,8 +593,8 @@ export class ButtonStats {
       LEFT JOIN file snd ON u.sound_id = snd.id
       LEFT JOIN category cat ON u.category_id = cat.id
       ORDER BY bs.play_count DESC, bs.last_played DESC
-      LIMIT ?
-    `, [limit]);
+      LIMIT ${validLimit}
+    `);
     return rows;
   }
 

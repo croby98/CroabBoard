@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useFavorites } from '@/hooks/useFavorites';
 
 interface Button {
     image_id: number;
@@ -15,14 +16,17 @@ const apiUrlSoundFiles = 'http://localhost:5000/uploads/audio/';
 
 let playCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
+let isAK47Active = false; // Flag to track if AK47 mode is running
 
 const HomeButtons: React.FC = () => {
     const { user } = useAuth();
+    const { toggleFavorite, isFavorite } = useFavorites();
     const [buttons, setButtons] = useState<Button[]>([]);
     const [errorMessage, setErrorMessage] = useState('');
     const [loading, setLoading] = useState(false);
-    const [volume, setVolume] = useState(0.5);
+    const [masterVolume, setMasterVolume] = useState(0.5);
     const [currentTrack, setCurrentTrack] = useState<string | null>(null);
+    const [currentImage, setCurrentImage] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -31,6 +35,7 @@ const HomeButtons: React.FC = () => {
         x: number;
         y: number;
         imageId: number | null;
+        uploadedId: number | null;
         soundFilename: string | null;
     } | null>(null);
 
@@ -80,29 +85,53 @@ const HomeButtons: React.FC = () => {
         }
     };
 
-    const PlaySound = (sound_filename?: string | null, imageId?: number) => {
+    const PlaySound = async (sound_filename?: string | null, imageId?: number, uploadedId?: number, recordInHistory = true) => {
         if (!sound_filename) {
             return;
         }
-        
+
+        // If user clicks a button while AK47 is active, stop AK47 mode
+        if (intervalId && recordInHistory) { // recordInHistory = true means user click
+            clearInterval(intervalId);
+            intervalId = null;
+            playCount = 0;
+            isAK47Active = false;
+        }
+
         const soundUrl = `${apiUrlSoundFiles}${sound_filename}`;
-        
-        // Find button name for display
+
+        // Find button for display
         const button = buttons.find(b => b.image_id === imageId);
         const trackName = button ? button.button_name : sound_filename;
-        
+        const buttonUploadedId = uploadedId || button?.uploaded_id;
+
         if (audioRef.current) {
             audioRef.current.src = soundUrl;
-            audioRef.current.volume = volume;
+            audioRef.current.volume = masterVolume;
             audioRef.current.currentTime = 0;
-            
+
             setCurrentTrack(trackName);
-            
-            audioRef.current.play().catch(error => {
-                console.error('Error playing sound:', error);
-                setErrorMessage('Error playing audio. Please try again.');
-                setIsPlaying(false);
-            });
+            setCurrentImage(button?.image_filename || null);
+
+            audioRef.current.play()
+                .then(async () => {
+                    // Record play in history/stats (only for normal clicks, not AK47 spam)
+                    if (recordInHistory && buttonUploadedId) {
+                        try {
+                            await fetch(`http://localhost:5000/api/play/${buttonUploadedId}`, {
+                                method: 'POST',
+                                credentials: 'include',
+                            });
+                        } catch (err) {
+                            console.error('Error recording play:', err);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error playing sound:', error);
+                    setErrorMessage('Error playing audio. Please try again.');
+                    setIsPlaying(false);
+                });
         } else {
             console.error('Audio ref not available');
         }
@@ -111,18 +140,29 @@ const HomeButtons: React.FC = () => {
 
     useEffect(() => {
         fetchUserButtons();
+
+        // Cleanup: stop AK47 mode on unmount
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
     }, []);
 
     // Audio control functions
     const handlePlayPause = () => {
-        if (!audioRef.current) {
+        if (!audioRef.current || !currentTrack) {
             return;
         }
-        
+
         if (isPlaying) {
             audioRef.current.pause();
         } else {
-            audioRef.current.play();
+            audioRef.current.play().catch(error => {
+                console.error('Error playing:', error);
+                setErrorMessage('Failed to play audio');
+            });
         }
     };
 
@@ -133,12 +173,23 @@ const HomeButtons: React.FC = () => {
         }
         setIsPlaying(false);
         setCurrentTrack(null);
+        setCurrentImage(null);
+    };
+
+    const handleReplay = () => {
+        if (audioRef.current && currentTrack) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(error => {
+                console.error('Error replaying:', error);
+                setErrorMessage('Failed to replay audio');
+            });
+        }
     };
 
 
-    // Volume control
+    // Master Volume control
     const handleVolumeChange = (newVolume: number) => {
-        setVolume(newVolume);
+        setMasterVolume(newVolume);
         if (audioRef.current) {
             audioRef.current.volume = newVolume;
         }
@@ -146,16 +197,26 @@ const HomeButtons: React.FC = () => {
 
 
 
-    // Start spamming
-    const startSpammingAK47Sound = (sound_filename: string, imageId?: number) => {
-          if (intervalId) clearInterval(intervalId);
+    // Start AK47 spam mode - plays sound 47 times in the main player
+    const startSpammingAK47Sound = (sound_filename: string, imageId?: number, uploadedId?: number) => {
+          // Stop any existing interval
+          if (intervalId) {
+               clearInterval(intervalId);
+          }
 
           playCount = 0;
+          isAK47Active = true; // Set flag to true
+
+          // Play sound repeatedly using the main player, don't record each play
           intervalId = setInterval(() => {
-               PlaySound(sound_filename, imageId);
+               PlaySound(sound_filename, imageId, uploadedId, false); // recordInHistory = false for AK47
                playCount++;
                if (playCount >= 47) {
-                    if (intervalId) clearInterval(intervalId);
+                    if (intervalId) {
+                         clearInterval(intervalId);
+                         intervalId = null;
+                         isAK47Active = false; // Reset flag when done
+                    }
                }
           }, 130);
     };
@@ -164,6 +225,7 @@ const HomeButtons: React.FC = () => {
     const handleContextMenu = (
         event: React.MouseEvent,
         imageId: number,
+        uploadedId: number,
         soundFilename: string
     ) => {
         event.preventDefault();
@@ -172,6 +234,7 @@ const HomeButtons: React.FC = () => {
             x: event.clientX,
             y: event.clientY,
             imageId,
+            uploadedId,
             soundFilename,
         });
     };
@@ -191,10 +254,8 @@ const HomeButtons: React.FC = () => {
     };
 
     const handleAK47 = () => {
-        if (contextMenu?.soundFilename) {
-            // Find the button to get its image ID for volume
-            const button = buttons.find(b => b.sound_filename === contextMenu.soundFilename);
-            startSpammingAK47Sound(contextMenu.soundFilename, button?.image_id);
+        if (contextMenu?.soundFilename && contextMenu?.uploadedId) {
+            startSpammingAK47Sound(contextMenu.soundFilename, contextMenu.imageId || undefined, contextMenu.uploadedId);
         }
         handleCloseContextMenu();
     };
@@ -255,42 +316,107 @@ const HomeButtons: React.FC = () => {
         <div className="min-h-screen bg-base-200 p-2">
             <div className="max-w-full space-y-4">
 
-                {/* Compact Audio Player */}
-                <div className="card bg-base-100 shadow-lg">
+                {/* Modern Audio Player */}
+                <div className="card bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10 shadow-xl">
                     <div className="card-body p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-3 h-3 rounded-full ${isPlaying ? 'bg-success animate-pulse' : 'bg-base-300'}`} />
-                                <div>
-                                    <h3 className="font-semibold text-sm">Audio Player</h3>
-                                    <p className="text-xs opacity-60">{currentTrack || 'No track loaded'}</p>
+                        <div className="flex items-center gap-4">
+                            {/* Status Indicator & Track Info */}
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="relative">
+                                    {currentImage ? (
+                                        <div className={`w-14 h-14 rounded-lg overflow-hidden transition-all duration-300 ${
+                                            isPlaying
+                                                ? 'ring-4 ring-primary/50 shadow-lg shadow-primary/30'
+                                                : 'ring-2 ring-base-300'
+                                        }`}>
+                                            <img
+                                                src={`${apiUrlImagesFiles}${currentImage}`}
+                                                alt={currentTrack || 'Sound'}
+                                                className={`w-full h-full object-cover transition-transform duration-300 ${
+                                                    isPlaying ? 'scale-110' : 'scale-100'
+                                                }`}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-14 h-14 rounded-lg bg-base-300 flex items-center justify-center">
+                                            <span className="text-2xl opacity-50">🎶</span>
+                                        </div>
+                                    )}
+                                    {isPlaying && (
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-success rounded-full animate-ping" />
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-base truncate">
+                                        {currentTrack || 'No sound selected'}
+                                    </h3>
+                                    <p className="text-xs opacity-60">
+                                        {isPlaying ? 'Now Playing' : currentTrack ? 'Ready' : 'Click a button to play'}
+                                    </p>
                                 </div>
                             </div>
-                            
-                            <div className="flex items-center gap-2">
-                                <div className="btn-group">
-                                    <button 
-                                        className={`btn btn-sm ${isPlaying ? 'btn-secondary' : 'btn-primary'}`}
-                                        onClick={handlePlayPause}
+
+                            {/* Player Controls */}
+                            <div className="flex items-center gap-3">
+                                {/* Transport Buttons */}
+                                <div className="btn-group shadow-lg">
+                                    <button
+                                        className="btn btn-sm btn-ghost tooltip"
+                                        data-tip="Replay"
+                                        onClick={handleReplay}
+                                        disabled={!currentTrack}
                                     >
-                                        {isPlaying ? '⏸️' : '▶️'}
+                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" />
+                                        </svg>
                                     </button>
-                                    <button className="btn btn-sm btn-error" onClick={handleStop}>⏹️</button>
+                                    <button
+                                        className={`btn btn-sm tooltip ${
+                                            isPlaying ? 'btn-warning' : 'btn-primary'
+                                        }`}
+                                        data-tip={isPlaying ? 'Pause' : 'Play'}
+                                        onClick={handlePlayPause}
+                                        disabled={!currentTrack}
+                                    >
+                                        {isPlaying ? (
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-error tooltip"
+                                        data-tip="Stop"
+                                        onClick={handleStop}
+                                        disabled={!currentTrack}
+                                    >
+                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
                                 </div>
-                                
-                                {/* Volume Control */}
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm">🔊</span>
-                                    <input 
-                                        type="range" 
-                                        min="0" 
-                                        max="1" 
+
+                                {/* Master Volume Control */}
+                                <div className="flex items-center gap-2 bg-base-100 rounded-lg px-3 py-2 shadow-md">
+                                    <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.776l-4.375-3.5A1 1 0 014 13h-.5A1.5 1.5 0 012 11.5v-3A1.5 1.5 0 013.5 7H4a1 1 0 01.008-.224l4.375-3.5zM15.95 7.05a.75.75 0 00-1.06 1.06 2.5 2.5 0 010 3.54.75.75 0 001.06 1.06 4 4 0 000-5.66z" clipRule="evenodd" />
+                                    </svg>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
                                         step="0.05"
-                                        value={volume}
+                                        value={masterVolume}
                                         onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                                        className="range range-xs w-20" 
+                                        className="range range-xs range-primary w-24"
                                     />
-                                    <span className="badge badge-xs">{Math.round(volume * 100)}%</span>
+                                    <span className="badge badge-primary badge-sm font-bold min-w-[3rem]">
+                                        {Math.round(masterVolume * 100)}%
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -337,56 +463,75 @@ const HomeButtons: React.FC = () => {
                 {/* Sound Buttons - Full Page Grid */}
                 <div className="flex-1">
                     {!loading && !errorMessage && buttons.length > 0 && (
-                        <div className="flex flex-wrap gap-1 justify-start">
-                                    {buttons.map((button, idx) => (
-                                        <div
-                                            key={button.image_id}
-                                            className={`group relative cursor-pointer transition-all duration-200 hover:scale-105 hover:z-10 ${
-                                                draggedIndex === idx ? 'opacity-50 rotate-2' : 'opacity-100'
-                                            }`}
-                                            draggable
-                                            onDragStart={() => handleDragStart(idx)}
-                                            onDragOver={(e) => handleDragOver(e, idx)}
-                                            onDrop={handleDrop}
-                                        >
-                                            {/* Card with Category Color Border */}
-                                            <div 
-                                                className="card bg-base-100 shadow-lg hover:shadow-xl transition-all duration-300 border-4"
-                                                style={{ 
-                                                    borderColor: button.category_color,
-                                                    width: user?.btnSize || 100,
-                                                    height: user?.btnSize || 100
-                                                }}
-                                            >
-                                                <figure className="relative overflow-hidden">
-                                                    <img
-                                                        src={`${apiUrlImagesFiles}${button.image_filename}`}
-                                                        alt={button.button_name}
-                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                        onClick={() => PlaySound(button.sound_filename, button.image_id)}
-                                                        onContextMenu={(e) => handleContextMenu(e, button.image_id, button.sound_filename)}
-                                                        loading="lazy"
-                                                    />
-                                                    
-                                                    {/* Play Overlay */}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                                    
-                                                    {/* Button Name Overlay */}
-                                                    <div className="absolute bottom-0 left-0 right-0 p-1 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                                        <p className="text-white font-semibold text-xs truncate drop-shadow-lg text-center">
-                                                            {button.button_name}
-                                                        </p>
-                                                    </div>
-                                                    
-                                                    {/* Category Color Dot */}
-                                                    <div 
-                                                        className="absolute top-1 right-1 w-3 h-3 rounded-full shadow-lg ring-2 ring-white/30"
-                                                        style={{ backgroundColor: button.category_color }}
-                                                    />
-                                                </figure>
-                                            </div>
+                        <div className="flex flex-wrap gap-2 justify-start">
+                            {buttons.map((button, idx) => (
+                                <div
+                                    key={button.image_id}
+                                    className={`group relative cursor-pointer transition-all duration-200 hover:scale-105 hover:z-10 ${
+                                        draggedIndex === idx ? 'opacity-50 rotate-2' : 'opacity-100'
+                                    }`}
+                                    draggable
+                                    onDragStart={() => handleDragStart(idx)}
+                                    onDragOver={(e) => handleDragOver(e, idx)}
+                                    onDrop={handleDrop}
+                                    style={{
+                                        width: user?.btnSize || 100,
+                                        height: user?.btnSize || 100
+                                    }}
+                                >
+                                    {/* Button Container with Category Border */}
+                                    <div
+                                        className="relative w-full h-full overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+                                        style={{
+                                            borderWidth: '3px',
+                                            borderStyle: 'solid',
+                                            borderColor: button.category_color,
+                                        }}
+                                        onClick={() => PlaySound(button.sound_filename, button.image_id, button.uploaded_id)}
+                                        onContextMenu={(e) => handleContextMenu(e, button.image_id, button.uploaded_id, button.sound_filename)}
+                                    >
+                                        {/* Background Image - Full Cover */}
+                                        <img
+                                            src={`${apiUrlImagesFiles}${button.image_filename}`}
+                                            alt={button.button_name}
+                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
+                                            loading="lazy"
+                                        />
+
+                                        {/* Gradient Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                                        {/* Button Name Overlay */}
+                                        <div className="absolute bottom-0 left-0 right-0 p-2 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10 pointer-events-none">
+                                            <p className="text-white font-semibold text-xs truncate drop-shadow-lg text-center">
+                                                {button.button_name}
+                                            </p>
                                         </div>
-                                    ))}
+
+                                        {/* Favorite Button - Top Left */}
+                                        <button
+                                            className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-20 pointer-events-auto"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleFavorite(button.uploaded_id);
+                                            }}
+                                        >
+                                            {isFavorite(button.uploaded_id) ? (
+                                                <svg className="w-5 h-5 text-red-500 fill-current" viewBox="0 0 20 20">
+                                                    <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                </svg>
+                                            )}
+                                        </button>
+
+                                        {/* Click Feedback */}
+                                        <div className="absolute inset-0 bg-white/20 opacity-0 group-active:opacity-100 transition-opacity duration-75 pointer-events-none" />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -426,15 +571,21 @@ const HomeButtons: React.FC = () => {
 
 
             {/* Hidden Audio Element */}
-            <audio 
+            <audio
                 ref={audioRef}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => {
                     setIsPlaying(false);
                     setCurrentTrack(null);
+                    setCurrentImage(null);
                 }}
-                hidden
+                onError={(e) => {
+                    console.error('Audio error:', e);
+                    setErrorMessage('Failed to load audio file');
+                    setIsPlaying(false);
+                }}
+                preload="none"
             />
             </div>
             </div>

@@ -101,10 +101,12 @@ export const usePlayHistory = () => {
         }
     }, []);
 
-    useEffect(() => {
-        fetchHistory();
-        fetchRecentlyPlayed();
-    }, [fetchHistory, fetchRecentlyPlayed]);
+    // Don't auto-fetch on mount - let the component decide when to fetch
+    // This prevents unnecessary API calls when the hook is used just for recordPlay
+    // useEffect(() => {
+    //     fetchHistory();
+    //     fetchRecentlyPlayed();
+    // }, []);
 
     return {
         history,
