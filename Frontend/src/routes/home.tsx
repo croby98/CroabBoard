@@ -13,10 +13,12 @@ function RouteComponent() {
   // Show loading while checking auth
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading...</p>
+      <div className="hero min-h-screen bg-base-200">
+        <div className="hero-content text-center">
+          <div className="card bg-base-100 shadow-xl p-8">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
+            <p className="mt-4 text-base-content">Loading your sound collection...</p>
+          </div>
         </div>
       </div>
     );
@@ -25,26 +27,23 @@ function RouteComponent() {
   // Simply show login message if no user (don't redirect to prevent loops)
   if (!user) {
     return (
-      <div className="flex justify-center items-center h-screen text-white">
-        <div className="text-center">
-          <p>Please log in to access this page.</p>
-          <button 
-            onClick={() => navigate({ to: '/' })}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Go to Login
-          </button>
+      <div className="hero min-h-screen bg-base-200">
+        <div className="hero-content text-center">
+          <div className="card bg-base-100 shadow-xl p-8">
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+            <p className="mb-6 opacity-60">Please log in to access your sound collection.</p>
+            <button 
+              onClick={() => navigate({ to: '/' })}
+              className="btn btn-primary"
+            >
+              Go to Login
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-900">
-      <div className="p-4">
-        <h1 className="text-2xl font-bold text-white mb-4">Welcome, {user.username}!</h1>
-        <HomeButtons />
-      </div>
-    </div>
-  );
+  return <HomeButtons />;
 }

@@ -55,7 +55,6 @@ const ProfilePage: React.FC = () => {
             const profileData = await profileResponse.json();
             
             if (profileResponse.ok && profileData.success) {
-                console.log('User uploaded buttons:', profileData.buttons.length);
                 setButtons(profileData.buttons || []);
                 setButtonSize(profileData.btn_size || 150);
             } else {

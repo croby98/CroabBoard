@@ -26,7 +26,6 @@ function App() {
         try {
             await login(username, password);
             // Login successful - wait a bit longer to ensure session is saved
-            console.log('Login completed, waiting for session to be saved...');
             setTimeout(() => {
                 console.log('Attempting navigation to /home');
                 try {
@@ -49,58 +48,96 @@ function App() {
     // Show loading while checking authentication status
     if (loading) {
         return (
-            <div className="flex justify-center flex-grow items-center text-white">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-                    <p>Loading...</p>
+            <div className="hero min-h-screen bg-base-200">
+                <div className="hero-content text-center">
+                    <div>
+                        <span className="loading loading-spinner loading-lg text-primary"></span>
+                        <p className="mt-4">Loading...</p>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex justify-center flex-grow items-center text-white">
-            <div className="bg-gray-950 p-8 rounded shadow-md w-full max-w-sm">
-                <h1 className="text-2xl font-bold mb-4">Login</h1>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block mb-2 text-sm font-medium">Username</label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                            placeholder="Enter your username"
-                            required
-                        />
+        <div className="hero min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
+            <div className="hero-content flex-col lg:flex-row-reverse">
+                <div className="text-center lg:text-left lg:ml-8">
+                    <div className="flex items-center justify-center lg:justify-start mb-4">
+                        <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mr-4">
+                            <span className="text-3xl">🎵</span>
+                        </div>
+                        <div>
+                            <h1 className="text-5xl font-bold text-base-content">CroabBoard</h1>
+                            <p className="text-lg text-base-content/70">Sound Collection Manager</p>
+                        </div>
                     </div>
-                    <div className="mb-4">
-                        <label className="block mb-2 text-sm font-medium">Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                            placeholder="Enter your password"
-                            required
-                        />
+                    <p className="py-6 text-base-content/60 max-w-md">
+                        Your professional sound button collection. Upload, organize, and play your favorite sounds with an intuitive interface and powerful features.
+                    </p>
+                </div>
+                
+                <div className="card flex-shrink-0 w-full max-w-md shadow-2xl bg-base-100">
+                    <div className="card-body">
+                        <h2 className="card-title justify-center text-2xl mb-6">Welcome Back</h2>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text">Username</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    className="input input-bordered input-primary w-full"
+                                    placeholder="Enter your username"
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text">Password</span>
+                                </label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="input input-bordered input-primary w-full"
+                                    placeholder="Enter your password"
+                                    required
+                                />
+                            </div>
+                            
+                            {errorMessage && (
+                                <div className="alert alert-error">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>{errorMessage}</span>
+                                </div>
+                            )}
+                            
+                            <div className="form-control mt-6">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className={`btn btn-primary w-full ${isSubmitting ? 'loading' : ''}`}
+                                >
+                                    {isSubmitting ? 'Signing in...' : 'Sign In'}
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div className="divider">New to CroabBoard?</div>
+                        
+                        <a href="/register" className="btn btn-outline w-full">
+                            Create Account
+                        </a>
                     </div>
-                    {errorMessage && <p className="text-red-500 text-sm mb-4">{errorMessage}</p>}
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 hover:cursor-pointer disabled:bg-gray-500 disabled:cursor-not-allowed"
-                    >
-                        {isSubmitting ? 'Logging in...' : 'Login'}
-                    </button>
-                </form>
-                <p className="mt-4 text-sm text-gray-400 text-center">
-                    Don't have an account?{' '}
-                    <a href="/register" className="text-blue-400 hover:underline">
-                        Register here
-                    </a>
-                </p>
+                </div>
             </div>
         </div>
-    )
+    );
 }

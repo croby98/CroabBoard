@@ -1,13 +1,9 @@
 import React, {useEffect, useState} from 'react';
-import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import {useLocation, useNavigate} from "@tanstack/react-router";
 import UploadModal from './UploadModal';
-
-function classNames(...classes: string[]) {
-    return classes.filter(Boolean).join(' ')
-}
+import ThemeSelector from './ui/ThemeSelector';
 
 export const Navbar: React.FC = () => {
 
@@ -17,6 +13,7 @@ export const Navbar: React.FC = () => {
     const closeModal = () => setIsModalOpen(false);
 
     const { user, logout } = useAuth(); // Access the `logout` method from AuthContext
+    const { theme, toggleTheme } = useTheme(); // Access theme methods
     const navigate = useNavigate();
 
     const location = useLocation(); // Get the current location from React Router
@@ -58,118 +55,116 @@ export const Navbar: React.FC = () => {
 
     return (
         <>
-            <Disclosure as="nav" className="flex justify-center">
-                <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
-                    <div className="relative flex h-16 items-center justify-between">
-                        <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
-                            {/* Mobile menu button*/}
-                            <DisclosureButton className="group relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:ring-2 focus:ring-white focus:outline-hidden focus:ring-inset">
-                                <span className="absolute -inset-0.5" />
-                                <span className="sr-only">Open main menu</span>
-                                <Bars3Icon aria-hidden="true" className="block size-6 group-data-open:hidden" />
-                                <XMarkIcon aria-hidden="true" className="hidden size-6 group-data-open:block" />
-                            </DisclosureButton>
+            <div className="navbar bg-base-100 shadow-lg border-b border-base-300">
+                <div className="navbar-start">
+                    {/* Mobile menu */}
+                    <div className="dropdown">
+                        <div tabIndex={0} role="button" className="btn btn-ghost btn-circle lg:hidden">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
+                            </svg>
                         </div>
-                        <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                            <div className="hidden sm:ml-6 sm:block">
-                                <div className="flex space-x-4">
-                                    {navigation.map((item) => (
-                                        <a
-                                            key={item.name}
-                                            href={item.href}
-                                            aria-current={item.current ? 'page' : undefined}
-                                            className={classNames(
-                                                item.current ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white',
-                                                'rounded-md px-3 py-2 text-sm font-medium',
-                                            )}
-                                        >
-                                            {item.name}
-                                        </a>
-                                    ))}
-                                </div>
+                        <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow-xl bg-base-100 rounded-box w-64 border border-base-300">
+                            {navigation.map((item) => (
+                                <li key={item.name}>
+                                    <a href={item.href} className={`flex items-center gap-2 ${item.current ? 'active' : ''}`}>
+                                        <span className="w-2 h-2 rounded-full bg-primary opacity-60"></span>
+                                        {item.name}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                    
+                    {/* Logo */}
+                    <a href="/home" className="btn btn-ghost text-xl font-bold">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                                <span className="text-base-100 text-lg">🎵</span>
                             </div>
-                            <div className="ps-4">
-                                <button
-                                    onClick={openModal}
-                                    className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 cursor-pointer"
-                                >
-                                    Upload
-                                </button>
+                            <span className="hidden sm:inline">CroabBoard</span>
+                        </div>
+                    </a>
+                </div>
+                
+                {/* Desktop menu */}
+                <div className="navbar-center hidden lg:flex">
+                    <ul className="menu menu-horizontal px-1">
+                        {navigation.map((item) => (
+                            <li key={item.name}>
+                                <a href={item.href} className={`font-medium ${item.current ? 'active' : ''}`}>
+                                    {item.name}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                
+                {/* Actions */}
+                <div className="navbar-end">
+                    <div className="flex items-center gap-2">
+                        {/* Upload button */}
+                        <button
+                            onClick={openModal}
+                            className="btn btn-primary btn-sm gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span className="hidden sm:inline">Upload</span>
+                        </button>
 
-                                {/* Upload Modal */}
-                                <UploadModal isOpen={isModalOpen} closeModal={closeModal} />
-                            </div>
-                        </div>
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                            {/* Profile dropdown */}
-                            <Menu as="div" className="relative ml-3">
-                                <div>
-                                    <MenuButton className="relative flex rounded-full bg-gray-800 text-sm focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-hidden cursor-pointer">
-                                        <span className="absolute -inset-1.5" />
-                                        <span className="sr-only">Open user menu</span>
-                                        <img
-                                            alt=""
-                                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                                            className="size-8 rounded-full"
-                                        />
-                                    </MenuButton>
+                        {/* Theme Selector */}
+                        <ThemeSelector />
+                        
+                        {/* Profile dropdown */}
+                        <div className="dropdown dropdown-end">
+                            <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
+                                <div className="w-10 rounded-full ring-2 ring-base-300 ring-offset-base-100 ring-offset-2">
+                                    <img
+                                        alt={user?.username || 'User'}
+                                        src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                                        className="rounded-full"
+                                    />
                                 </div>
-                                <MenuItems
-                                    transition
-                                    className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-gray-950 py-1 shadow-lg ring-1 ring-black/5 transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
-                                >
-                                    <MenuItem>
-                                        <a
-                                            href="/profile"
-                                            className="block px-4 py-2 text-sm w-full text-center text-gray-100 data-focus:bg-gray-900 data-focus:outline-hidden"
-                                        >
-                                            Profile
+                            </div>
+                            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow-xl bg-base-100 rounded-box w-64 border border-base-300">
+                                <li>
+                                    <a href="/profile" className="flex items-center gap-3">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        Profile Settings
+                                    </a>
+                                </li>
+                                {user?.username === 'Croby' && (
+                                    <li>
+                                        <a href="/admin" className="flex items-center gap-3">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            Admin Panel
                                         </a>
-                                    </MenuItem>
-                                    {/* Admin menu - only show for Croby */}
-                                    {user?.username === 'Croby' && (
-                                        <MenuItem>
-                                            <a
-                                                href="/admin"
-                                                className="block px-4 py-2 text-sm w-full text-center text-gray-100 data-focus:bg-gray-900 data-focus:outline-hidden"
-                                            >
-                                                Admin
-                                            </a>
-                                        </MenuItem>
-                                    )}
-                                    <MenuItem>
-                                        <button
-                                            onClick={handleLogout}
-                                            className="block px-4 py-2 text-sm w-full text-gray-100 data-focus:bg-gray-900 data-focus:outline-hidden hover:cursor-pointer"
-                                        >
-                                            Sign out
-                                        </button>
-                                    </MenuItem>
-                                </MenuItems>
-                            </Menu>
+                                    </li>
+                                )}
+                                <div className="divider my-2"></div>
+                                <li>
+                                    <a onClick={handleLogout} className="flex items-center gap-3 text-error">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        Sign out
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <DisclosurePanel className="sm:hidden">
-                    <div className="space-y-1 px-2 pt-2 pb-3">
-                        {navigation.map((item) => (
-                            <DisclosureButton
-                                key={item.name}
-                                as="a"
-                                href={item.href}
-                                aria-current={item.current ? 'page' : undefined}
-                                className={classNames(
-                                    item.current ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white',
-                                    'block rounded-md px-3 py-2 text-base font-medium',
-                                )}
-                            >
-                                {item.name}
-                            </DisclosureButton>
-                        ))}
-                    </div>
-                </DisclosurePanel>
-            </Disclosure>
+            {/* Upload Modal */}
+            <UploadModal isOpen={isModalOpen} closeModal={closeModal} />
         </>
     );
 };

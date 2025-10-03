@@ -243,7 +243,6 @@ app.post('/api/register', async (req, res) => {
       btnSize: 150 // Default button size
     });
 
-    console.log(`New user registered: ${username} (ID: ${newUser.id})`);
 
     res.status(201).json({
       success: true,
@@ -293,6 +292,48 @@ app.get('/api/profil', authenticateUser, async (req, res) => {
   } catch (error) {
     console.error('Error getting profile:', error);
     res.status(500).json({ error: 'Failed to get profile' });
+  }
+});
+
+// Get user's linked buttons
+app.get('/api/linked', authenticateUser, async (req, res) => {
+  try {
+    const linked = await Linked.findByUser(req.user.id);
+    
+    // Transform the data to match expected format
+    const transformedLinked = linked.map(item => ({
+      image_id: item.id,
+      uploaded_id: item.uploaded_id,
+      button_name: item.name,
+      image_filename: item.image_filename,
+      sound_filename: item.sound_filename,
+      category_color: item.category_color || '#3B82F6'
+    }));
+    
+    res.json({ success: true, linked: transformedLinked });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Reorder user's linked buttons
+app.put('/api/linked', authenticateUser, async (req, res) => {
+  try {
+    const { positions } = req.body;
+    
+    if (!positions || !Array.isArray(positions)) {
+      return res.status(400).json({ success: false, message: 'Invalid positions data' });
+    }
+    
+    // Update each button's position
+    for (const pos of positions) {
+      await Linked.updatePosition(req.user.id, pos.id, pos.new_position);
+    }
+    
+    res.json({ success: true, message: 'Button order updated successfully' });
+  } catch (error) {
+    console.error('Error reordering buttons:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -379,12 +420,6 @@ app.post('/api/buttons', authenticateUser, upload.fields([
       });
     }
 
-    console.log('Upload request:', {
-      ButtonName,
-      CategoryName,
-      imageFile: imageFile.filename,
-      soundFile: soundFile.filename
-    });
 
     // Create File entries
     const imageFileEntry = await File.create({

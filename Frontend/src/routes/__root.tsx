@@ -19,10 +19,7 @@ function AppLayout() {
 
     return (
         <>
-            <header className="bg-gray-950 text-white p-4 flex items-center justify-center">
-                <a href="/home" className="text-2xl font-bold">CrobBoard</a>
-                {isAuthenticated && <Navbar />} {/* Show navbar only if authenticated */}
-            </header>
+            {isAuthenticated && <Navbar />} {/* Show navbar only if authenticated */}
             <main className="flex flex-col" onContextMenu={e => { e.preventDefault(); return false; }}>
                 <Outlet />
             </main>

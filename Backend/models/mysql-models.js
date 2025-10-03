@@ -100,6 +100,14 @@ export class Category {
     const [rows] = await pool.execute('SELECT * FROM category ORDER BY name');
     return rows;
   }
+
+  static async findByName(name) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM category WHERE name = ?',
+      [name]
+    );
+    return rows[0] || null;
+  }
 }
 
 // File Model
@@ -300,45 +308,7 @@ export class Linked {
   }
 }
 
-// Category Model
-export class Category {
-  static async findByName(name) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM category WHERE name = ?',
-      [name]
-    );
-    return rows[0] || null;
-  }
 
-  static async create(categoryData) {
-    const { name, color = '#3B82F6' } = categoryData;
-    const [result] = await pool.execute(
-      'INSERT INTO category (name, color) VALUES (?, ?)',
-      [name, color]
-    );
-    return { id: result.insertId, name, color };
-  }
-}
-
-// File Model Enhancement
-export class File {
-  static async create(fileData) {
-    const { filename, type } = fileData;
-    const [result] = await pool.execute(
-      'INSERT INTO file (filename, type) VALUES (?, ?)',
-      [filename, type]
-    );
-    return { id: result.insertId, filename, type };
-  }
-
-  static async findById(id) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM file WHERE id = ?',
-      [id]
-    );
-    return rows[0] || null;
-  }
-}
 
 // Delete History Model (if needed)
 export class DeleteHistory {

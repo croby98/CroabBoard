@@ -40,7 +40,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             const data = await response.json();
             if (data.success) {
-                console.log('Login successful, setting user:', data.user);
                 setUser(data.user);
             } else {
                 throw new Error(data.message || 'Login failed');
