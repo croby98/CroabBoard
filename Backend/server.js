@@ -8,14 +8,21 @@ import fs from 'fs';
 import bcrypt from 'bcrypt';
 
 // Import MySQL models
-import { 
-  User, 
-  Category, 
-  File, 
-  Uploaded, 
+import {
+  User,
+  Category,
+  File,
+  Uploaded,
   Linked,
-  testConnection 
+  ButtonVolume,
+  Favorite,
+  PlayHistory,
+  ButtonStats,
+  testConnection
 } from './models/mysql-models.js';
+
+// Import auth middleware
+import { authenticateUser, requireAdmin } from './middleware/auth.js';
 
 dotenv.config();
 
@@ -31,10 +38,18 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Ensure uploads directory exists
+// Ensure uploads directory structure exists
 const uploadsDir = 'uploads';
+const uploadsImagesDir = path.join(uploadsDir, 'images');
+const uploadsAudioDir = path.join(uploadsDir, 'audio');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+if (!fs.existsSync(uploadsImagesDir)) {
+  fs.mkdirSync(uploadsImagesDir, { recursive: true });
+}
+if (!fs.existsSync(uploadsAudioDir)) {
+  fs.mkdirSync(uploadsAudioDir, { recursive: true });
 }
 
 // Serve static files from uploads folder
@@ -58,7 +73,14 @@ app.use(session({
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, 'uploads/');
+      // Route images to uploads/images and audio to uploads/audio
+      if (file.fieldname === 'image') {
+        cb(null, uploadsImagesDir);
+      } else if (file.fieldname === 'sound') {
+        cb(null, uploadsAudioDir);
+      } else {
+        cb(new Error('Unexpected field'));
+      }
     },
     filename: (req, file, cb) => {
       // Generate unique filename
@@ -87,21 +109,6 @@ const upload = multer({
     }
   }
 });
-
-// Simple auth middleware
-const authenticateUser = (req, res, next) => {
-  
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  
-  req.user = {
-    id: req.session.user.id,
-    username: req.session.user.username,
-    btnSize: req.session.user.btnSize
-  };
-  next();
-};
 
 // ===== ROUTES =====
 
@@ -341,11 +348,11 @@ app.put('/api/linked', authenticateUser, async (req, res) => {
 app.post('/api/button_size/:btn_size', authenticateUser, async (req, res) => {
   try {
     const btnSize = parseInt(req.params.btn_size);
-    
+
     if (isNaN(btnSize) || btnSize < 50 || btnSize > 500) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid button size. Must be between 50 and 500.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid button size. Must be between 50 and 500.'
       });
     }
 
@@ -355,15 +362,83 @@ app.post('/api/button_size/:btn_size', authenticateUser, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Update button size in database (need to add this method to User model)
+    // Update button size in database
     await User.updateButtonSize(user.id, btnSize);
-    
+
+    // Update session
+    req.session.user.btnSize = btnSize;
+
     res.json({ success: true, message: 'Button size updated successfully' });
   } catch (error) {
     console.error('Error updating button size:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update button size' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update button size'
+    });
+  }
+});
+
+// Reset password endpoint
+app.post('/api/reset_password', authenticateUser, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'All password fields are required'
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New passwords do not match'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Get user from database
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password in database
+    await User.updatePassword(user.id, hashedPassword);
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update password'
     });
   }
 });
@@ -459,7 +534,9 @@ app.post('/api/buttons', authenticateUser, upload.fields([
 
     res.status(201).json({
       success: true,
-      message: 'Button uploaded and linked successfully'
+      message: 'Button uploaded and linked successfully',
+      imageUrl: `/uploads/images/${imageFile.filename}`,
+      soundUrl: `/uploads/audio/${soundFile.filename}`
     });
 
   } catch (error) {
@@ -520,14 +597,37 @@ app.post('/api/bulk-operations', authenticateUser, async (req, res) => {
   }
 });
 
-// User routes
-app.get('/api/users', async (req, res) => {
+// Admin routes - Get all users (admin only)
+app.get('/api/users', requireAdmin, async (req, res) => {
   try {
     const users = await User.getAll();
     res.json({ success: true, users });
   } catch (error) {
     console.error('Error getting users:', error);
     res.status(500).json({ error: 'Failed to get users' });
+  }
+});
+
+// Admin - Get deleted history (admin only)
+app.get('/api/deleted_history', requireAdmin, async (req, res) => {
+  try {
+    const deletedButtons = await Uploaded.getDeletedHistory();
+    res.json({ success: true, deleted: deletedButtons });
+  } catch (error) {
+    console.error('Error getting deleted history:', error);
+    res.status(500).json({ error: 'Failed to get deleted history' });
+  }
+});
+
+// Admin - Restore button from history (admin only)
+app.post('/api/restore_from_history/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Uploaded.restoreFromHistory(id);
+    res.json({ success: true, message: 'Button restored successfully' });
+  } catch (error) {
+    console.error('Error restoring button:', error);
+    res.status(500).json({ error: 'Failed to restore button' });
   }
 });
 
@@ -661,24 +761,6 @@ app.get('/api/user/uploaded', authenticateUser, async (req, res) => {
   }
 });
 
-// Get user's linked buttons
-app.get('/api/linked', authenticateUser, async (req, res) => {
-  try {
-    const linked = await Linked.findByUser(req.user.id);
-    
-    // Add file URLs
-    const linkedWithUrls = linked.map(item => ({
-      ...item,
-      imageUrl: item.image_filename ? `/uploads/${item.image_filename}` : null,
-      soundUrl: item.sound_filename ? `/uploads/${item.sound_filename}` : null
-    }));
-    
-    res.json({ success: true, linked: linkedWithUrls });
-  } catch (error) {
-    console.error('Error getting linked buttons:', error);
-    res.status(500).json({ error: 'Failed to get linked buttons' });
-  }
-});
 
 // Link/unlink button to user
 app.post('/api/link', authenticateUser, async (req, res) => {
@@ -701,13 +783,257 @@ app.post('/api/link', authenticateUser, async (req, res) => {
 app.delete('/api/link/:uploadedId', authenticateUser, async (req, res) => {
   try {
     const { uploadedId } = req.params;
-    
+
     await Linked.delete(req.user.id, uploadedId);
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error unlinking button:', error);
     res.status(500).json({ error: 'Failed to unlink button' });
+  }
+});
+
+// Volume control endpoints
+// Get volume for a specific button
+app.get('/api/button-volume/:uploadedId', authenticateUser, async (req, res) => {
+  try {
+    const { uploadedId } = req.params;
+    const volume = await ButtonVolume.getVolume(req.user.id, uploadedId);
+    res.json({ success: true, volume });
+  } catch (error) {
+    console.error('Error getting button volume:', error);
+    res.status(500).json({ error: 'Failed to get button volume' });
+  }
+});
+
+// Set volume for a specific button
+app.post('/api/button-volume/:uploadedId', authenticateUser, async (req, res) => {
+  try {
+    const { uploadedId } = req.params;
+    const { volume } = req.body;
+
+    if (typeof volume !== 'number' || volume < 0 || volume > 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Volume must be a number between 0 and 1'
+      });
+    }
+
+    await ButtonVolume.setVolume(req.user.id, uploadedId, volume);
+    res.json({ success: true, message: 'Volume updated successfully' });
+  } catch (error) {
+    console.error('Error setting button volume:', error);
+    res.status(500).json({ error: 'Failed to set button volume' });
+  }
+});
+
+// Get all button volumes for current user
+app.get('/api/button-volumes', authenticateUser, async (req, res) => {
+  try {
+    const volumes = await ButtonVolume.getUserVolumes(req.user.id);
+
+    // Convert to object with uploadedId as key
+    const volumeMap = {};
+    volumes.forEach(v => {
+      volumeMap[v.uploaded_id] = v.volume;
+    });
+
+    res.json({ success: true, volumes: volumeMap });
+  } catch (error) {
+    console.error('Error getting button volumes:', error);
+    res.status(500).json({ error: 'Failed to get button volumes' });
+  }
+});
+
+// ===== FAVORITES ENDPOINTS =====
+
+// Get user's favorites
+app.get('/api/favorites', authenticateUser, async (req, res) => {
+  try {
+    const favorites = await Favorite.getUserFavorites(req.user.id);
+
+    const favoritesWithUrls = favorites.map(item => ({
+      ...item,
+      imageUrl: item.image_filename ? `/uploads/images/${item.image_filename}` : null,
+      soundUrl: item.sound_filename ? `/uploads/audio/${item.sound_filename}` : null
+    }));
+
+    res.json({ success: true, favorites: favoritesWithUrls });
+  } catch (error) {
+    console.error('Error getting favorites:', error);
+    res.status(500).json({ error: 'Failed to get favorites' });
+  }
+});
+
+// Check if button is favorite
+app.get('/api/favorite/:uploadedId', authenticateUser, async (req, res) => {
+  try {
+    const { uploadedId } = req.params;
+    const isFavorite = await Favorite.isFavorite(req.user.id, uploadedId);
+    res.json({ success: true, isFavorite });
+  } catch (error) {
+    console.error('Error checking favorite:', error);
+    res.status(500).json({ error: 'Failed to check favorite' });
+  }
+});
+
+// Add to favorites
+app.post('/api/favorite/:uploadedId', authenticateUser, async (req, res) => {
+  try {
+    const { uploadedId } = req.params;
+    const added = await Favorite.addFavorite(req.user.id, uploadedId);
+
+    if (added) {
+      res.json({ success: true, message: 'Added to favorites' });
+    } else {
+      res.json({ success: false, message: 'Already in favorites' });
+    }
+  } catch (error) {
+    console.error('Error adding favorite:', error);
+    res.status(500).json({ error: 'Failed to add favorite' });
+  }
+});
+
+// Remove from favorites
+app.delete('/api/favorite/:uploadedId', authenticateUser, async (req, res) => {
+  try {
+    const { uploadedId } = req.params;
+    const removed = await Favorite.removeFavorite(req.user.id, uploadedId);
+
+    if (removed) {
+      res.json({ success: true, message: 'Removed from favorites' });
+    } else {
+      res.json({ success: false, message: 'Not in favorites' });
+    }
+  } catch (error) {
+    console.error('Error removing favorite:', error);
+    res.status(500).json({ error: 'Failed to remove favorite' });
+  }
+});
+
+// Toggle favorite
+app.put('/api/favorite/:uploadedId/toggle', authenticateUser, async (req, res) => {
+  try {
+    const { uploadedId } = req.params;
+    const isFav = await Favorite.isFavorite(req.user.id, uploadedId);
+
+    if (isFav) {
+      await Favorite.removeFavorite(req.user.id, uploadedId);
+      res.json({ success: true, isFavorite: false, message: 'Removed from favorites' });
+    } else {
+      await Favorite.addFavorite(req.user.id, uploadedId);
+      res.json({ success: true, isFavorite: true, message: 'Added to favorites' });
+    }
+  } catch (error) {
+    console.error('Error toggling favorite:', error);
+    res.status(500).json({ error: 'Failed to toggle favorite' });
+  }
+});
+
+// ===== PLAY HISTORY ENDPOINTS =====
+
+// Track button play
+app.post('/api/play/:uploadedId', authenticateUser, async (req, res) => {
+  try {
+    const { uploadedId } = req.params;
+    await PlayHistory.addPlay(req.user.id, uploadedId);
+    res.json({ success: true, message: 'Play recorded' });
+  } catch (error) {
+    console.error('Error recording play:', error);
+    res.status(500).json({ error: 'Failed to record play' });
+  }
+});
+
+// Get user's play history
+app.get('/api/history', authenticateUser, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const history = await PlayHistory.getUserHistory(req.user.id, limit);
+
+    const historyWithUrls = history.map(item => ({
+      ...item,
+      imageUrl: item.image_filename ? `/uploads/images/${item.image_filename}` : null,
+      soundUrl: item.sound_filename ? `/uploads/audio/${item.sound_filename}` : null
+    }));
+
+    res.json({ success: true, history: historyWithUrls });
+  } catch (error) {
+    console.error('Error getting history:', error);
+    res.status(500).json({ error: 'Failed to get history' });
+  }
+});
+
+// Get recently played buttons
+app.get('/api/recently-played', authenticateUser, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const recentlyPlayed = await PlayHistory.getRecentlyPlayed(req.user.id, limit);
+
+    const recentWithUrls = recentlyPlayed.map(item => ({
+      ...item,
+      imageUrl: item.image_filename ? `/uploads/images/${item.image_filename}` : null,
+      soundUrl: item.sound_filename ? `/uploads/audio/${item.sound_filename}` : null
+    }));
+
+    res.json({ success: true, recentlyPlayed: recentWithUrls });
+  } catch (error) {
+    console.error('Error getting recently played:', error);
+    res.status(500).json({ error: 'Failed to get recently played' });
+  }
+});
+
+// Clear user's play history
+app.delete('/api/history', authenticateUser, async (req, res) => {
+  try {
+    await PlayHistory.clearUserHistory(req.user.id);
+    res.json({ success: true, message: 'History cleared' });
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    res.status(500).json({ error: 'Failed to clear history' });
+  }
+});
+
+// ===== STATISTICS ENDPOINTS =====
+
+// Get most played buttons (public or admin)
+app.get('/api/stats/most-played', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const mostPlayed = await ButtonStats.getMostPlayed(limit);
+
+    const mostPlayedWithUrls = mostPlayed.map(item => ({
+      ...item,
+      imageUrl: item.image_filename ? `/uploads/images/${item.image_filename}` : null,
+      soundUrl: item.sound_filename ? `/uploads/audio/${item.sound_filename}` : null
+    }));
+
+    res.json({ success: true, mostPlayed: mostPlayedWithUrls });
+  } catch (error) {
+    console.error('Error getting most played:', error);
+    res.status(500).json({ error: 'Failed to get most played' });
+  }
+});
+
+// Get button statistics (admin only)
+app.get('/api/stats/all', requireAdmin, async (req, res) => {
+  try {
+    const stats = await ButtonStats.getAllStats();
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error getting stats:', error);
+    res.status(500).json({ error: 'Failed to get stats' });
+  }
+});
+
+// Get specific button stats
+app.get('/api/stats/button/:uploadedId', async (req, res) => {
+  try {
+    const { uploadedId } = req.params;
+    const stats = await ButtonStats.getButtonStats(uploadedId);
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error getting button stats:', error);
+    res.status(500).json({ error: 'Failed to get button stats' });
   }
 });
 

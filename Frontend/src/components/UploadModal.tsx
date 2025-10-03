@@ -1,5 +1,5 @@
 import { Dialog, Transition } from '@headlessui/react';
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useCallback, useRef, useState } from 'react';
 
 interface UploadModalProps {
     isOpen: boolean;
@@ -13,6 +13,40 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
     const [categoryName, setCategoryName] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [isDragging, setIsDragging] = useState(false);
+    const dropRef = useRef<HTMLDivElement | null>(null);
+
+    const assignFilesFromList = useCallback((files: FileList | File[]) => {
+        const fileArray = Array.from(files);
+        const image = fileArray.find((f) => f.type.startsWith('image/')) || null;
+        const audio = fileArray.find((f) => f.type.startsWith('audio/')) || null;
+        if (image) setImageFile(image);
+        if (audio) setAudioFile(audio);
+    }, []);
+
+    const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    }, []);
+
+    const onDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (dropRef.current && !dropRef.current.contains(e.relatedTarget as Node)) {
+            setIsDragging(false);
+        }
+    }, []);
+
+    const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+            assignFilesFromList(e.dataTransfer.files);
+            e.dataTransfer.clearData();
+        }
+    }, [assignFilesFromList]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -131,6 +165,22 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                                     />
                                 </div>
 
+                                {/* Drag & Drop Zone */}
+                                <div
+                                    ref={dropRef}
+                                    onDragOver={onDragOver}
+                                    onDragLeave={onDragLeave}
+                                    onDrop={onDrop}
+                                    className={`border-2 border-dashed rounded p-4 transition-colors ${
+                                        isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600 bg-gray-700/30'
+                                    }`}
+                                >
+                                    <p className="text-gray-300 text-sm mb-2">
+                                        Glissez-déposez une image et un audio ici, ou utilisez les champs ci-dessous.
+                                    </p>
+                                    <div className="text-xs text-gray-400">Types supportés: images (png, jpg, gif, webp), audio (mp3, wav, ogg, m4a)</div>
+                                </div>
+
                                 {/* Image Upload */}
                                 <div>
                                     <label htmlFor="image" className="block text-sm font-medium text-gray-100 mb-1">
@@ -139,7 +189,11 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                                     <input
                                         type="file"
                                         id="image"
-                                        onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                                        onChange={(e) => {
+                                            if (e.target.files) {
+                                                assignFilesFromList(e.target.files);
+                                            }
+                                        }}
                                         className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-gray-100 hover:file:bg-gray-600 cursor-pointer"
                                         accept="image/*"
                                         required
@@ -155,7 +209,11 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                                     <input
                                         type="file"
                                         id="audio"
-                                        onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+                                        onChange={(e) => {
+                                            if (e.target.files) {
+                                                assignFilesFromList(e.target.files);
+                                            }
+                                        }}
                                         className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-gray-100 hover:file:bg-gray-600 cursor-pointer"
                                         accept="audio/*"
                                         required

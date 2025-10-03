@@ -1,68 +1,55 @@
-import { adminAuth } from '../firebase-config.js';
-
-export const authenticateUser = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'No authentication token provided'
-      });
-    }
-
-    const idToken = authHeader.split('Bearer ')[1];
-    
-    try {
-      const decodedToken = await adminAuth.verifyIdToken(idToken);
-      req.user = {
-        id: decodedToken.uid,
-        email: decodedToken.email,
-        username: decodedToken.username || decodedToken.email?.split('@')[0]
-      };
-      next();
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid authentication token'
-      });
-    }
-  } catch (error) {
-    console.error('Authentication middleware error:', error);
-    return res.status(500).json({
+// Session-based authentication middleware
+export const authenticateUser = (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({
       success: false,
-      message: 'Internal server error during authentication'
+      message: 'Not authenticated'
     });
   }
+
+  req.user = {
+    id: req.session.user.id,
+    username: req.session.user.username,
+    btnSize: req.session.user.btnSize
+  };
+  next();
 };
 
-export const optionalAuth = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      req.user = null;
-      return next();
-    }
-
-    const idToken = authHeader.split('Bearer ')[1];
-    
-    try {
-      const decodedToken = await adminAuth.verifyIdToken(idToken);
-      req.user = {
-        id: decodedToken.uid,
-        email: decodedToken.email,
-        username: decodedToken.username || decodedToken.email?.split('@')[0]
-      };
-    } catch (error) {
-      req.user = null;
-    }
-    
-    next();
-  } catch (error) {
-    console.error('Optional auth middleware error:', error);
+// Optional authentication - continues even if not authenticated
+export const optionalAuth = (req, res, next) => {
+  if (req.session.user) {
+    req.user = {
+      id: req.session.user.id,
+      username: req.session.user.username,
+      btnSize: req.session.user.btnSize
+    };
+  } else {
     req.user = null;
-    next();
   }
+  next();
+};
+
+// Admin-only middleware (checks if user is the owner)
+export const requireAdmin = async (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authenticated'
+    });
+  }
+
+  // Check if user ID is 1 (owner)
+  if (req.session.user.id !== 1) {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required'
+    });
+  }
+
+  req.user = {
+    id: req.session.user.id,
+    username: req.session.user.username,
+    btnSize: req.session.user.btnSize
+  };
+  next();
 };

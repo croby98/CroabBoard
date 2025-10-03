@@ -64,13 +64,13 @@ CroabBoard-Rework is a modern, full-featured soundboard application built for se
 ### 🎯 Features to Add
 
 #### 🎵 Audio & Playback Features
-- [x] **Complex audio player UI** (✅ Player controls, track display, stop button with global volume)
+- [] easy audio player UI
 
 #### 🎨 UI/UX Enhancements
-- [x] **Better design** (✅ Improved layout, spacing, and visual hierarchy)
-- [x] **Dark/Light theme toggle** (✅ Theme switcher with persistence)
-- [x] **Complete UI/UX Redesign** (✅ **LATEST 2024** - Professional DaisyUI v5 + TailwindCSS v4 implementation across ALL pages)
-- [x] **15+ Custom Themes** (✅ **NEW** - Beautiful theme picker with light, dark, synthwave, retro, cyberpunk, and more)
+- [ ] Better design
+- [ ] Dark/Light theme toggle
+- [ ] Complete UI/UX Redesign
+- [ ] 15+ Custom Themes
 - [ ] Drag & drop file upload
 - [ ] Bulk operations (select multiple buttons)
 

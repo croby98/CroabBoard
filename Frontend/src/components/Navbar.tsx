@@ -18,8 +18,11 @@ export const Navbar: React.FC = () => {
 
     const location = useLocation(); // Get the current location from React Router
     const [navigation, setNavigation] = useState([
-        { name: 'Home', href: '/home', current: false },
-        { name: 'Buttons', href: '/buttons', current: false },
+        { name: 'Home', href: '/home', current: false, icon: '🏠' },
+        { name: 'Buttons', href: '/buttons', current: false, icon: '🎵' },
+        { name: 'Favorites', href: '/favorites', current: false, icon: '❤️' },
+        { name: 'History', href: '/history', current: false, icon: '🕐' },
+        { name: 'Statistics', href: '/statistics', current: false, icon: '📊' },
     ]);
 
     // Update the current state in navigation based on the active path
@@ -68,7 +71,7 @@ export const Navbar: React.FC = () => {
                             {navigation.map((item) => (
                                 <li key={item.name}>
                                     <a href={item.href} className={`flex items-center gap-2 ${item.current ? 'active' : ''}`}>
-                                        <span className="w-2 h-2 rounded-full bg-primary opacity-60"></span>
+                                        <span>{item.icon}</span>
                                         {item.name}
                                     </a>
                                 </li>
@@ -93,6 +96,7 @@ export const Navbar: React.FC = () => {
                         {navigation.map((item) => (
                             <li key={item.name}>
                                 <a href={item.href} className={`font-medium ${item.current ? 'active' : ''}`}>
+                                    <span className="mr-1">{item.icon}</span>
                                     {item.name}
                                 </a>
                             </li>

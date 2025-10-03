@@ -65,6 +65,14 @@ export class User {
     const [rows] = await pool.execute('SELECT * FROM user ORDER BY username');
     return rows;
   }
+
+  static async updatePassword(userId, hashedPassword) {
+    await pool.execute(
+      'UPDATE user SET password = ? WHERE id = ?',
+      [hashedPassword, userId]
+    );
+    return await this.findById(userId);
+  }
 }
 
 // Category Model
@@ -201,16 +209,32 @@ export class Uploaded {
 
   static async getByUser(userId) {
     const [rows] = await pool.execute(`
-      SELECT u.*, 
+      SELECT u.*,
              img.filename as image_filename,
-             snd.filename as sound_filename
+             snd.filename as sound_filename,
+             cat.color as category_color
       FROM uploaded u
       LEFT JOIN file img ON u.image_id = img.id
       LEFT JOIN file snd ON u.sound_id = snd.id
+      LEFT JOIN category cat ON u.category_id = cat.id
       WHERE u.uploaded_by = ?
       ORDER BY u.button_name
     `, [userId]);
     return rows;
+  }
+
+  static async getDeletedHistory() {
+    const [rows] = await pool.execute(
+      'SELECT * FROM deleted_button ORDER BY delete_date DESC'
+    );
+    return rows;
+  }
+
+  static async restoreFromHistory(id) {
+    await pool.execute(
+      "UPDATE deleted_button SET status = 'restored' WHERE id = ?",
+      [id]
+    );
   }
 }
 
@@ -306,6 +330,28 @@ export class Linked {
     );
     return rows[0].max_tri;
   }
+
+  static async createOrUpdate(userId, uploadedId, tri) {
+    // Check if link already exists
+    const [existing] = await pool.execute(
+      'SELECT * FROM linked WHERE user_id = ? AND uploaded_id = ?',
+      [userId, uploadedId]
+    );
+
+    if (existing.length > 0) {
+      // Update existing tri position
+      await pool.execute(
+        'UPDATE linked SET tri = ? WHERE user_id = ? AND uploaded_id = ?',
+        [tri, userId, uploadedId]
+      );
+    } else {
+      // Create new link
+      await pool.execute(
+        'INSERT INTO linked (user_id, uploaded_id, tri) VALUES (?, ?, ?)',
+        [userId, uploadedId, tri]
+      );
+    }
+  }
 }
 
 
@@ -325,6 +371,222 @@ export class DeleteHistory {
     const [rows] = await pool.execute(
       'SELECT * FROM deleted_button WHERE owner_id = ? ORDER BY delete_date DESC',
       [userId]
+    );
+    return rows;
+  }
+}
+
+// ButtonVolume Model - Track individual button volume preferences per user
+export class ButtonVolume {
+  static async getVolume(userId, uploadedId) {
+    const [rows] = await pool.execute(
+      'SELECT volume FROM button_volume WHERE user_id = ? AND uploaded_id = ?',
+      [userId, uploadedId]
+    );
+    return rows[0]?.volume ?? 1.0; // Default to 1.0 (100%)
+  }
+
+  static async setVolume(userId, uploadedId, volume) {
+    // First check if record exists
+    const [existing] = await pool.execute(
+      'SELECT * FROM button_volume WHERE user_id = ? AND uploaded_id = ?',
+      [userId, uploadedId]
+    );
+
+    if (existing.length > 0) {
+      // Update existing volume
+      await pool.execute(
+        'UPDATE button_volume SET volume = ? WHERE user_id = ? AND uploaded_id = ?',
+        [volume, userId, uploadedId]
+      );
+    } else {
+      // Insert new volume preference
+      await pool.execute(
+        'INSERT INTO button_volume (user_id, uploaded_id, volume) VALUES (?, ?, ?)',
+        [userId, uploadedId, volume]
+      );
+    }
+  }
+
+  static async getUserVolumes(userId) {
+    const [rows] = await pool.execute(
+      'SELECT uploaded_id, volume FROM button_volume WHERE user_id = ?',
+      [userId]
+    );
+    return rows;
+  }
+}
+
+// Favorite Model - Manage user's favorite buttons
+export class Favorite {
+  static async isFavorite(userId, uploadedId) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM favorite WHERE user_id = ? AND uploaded_id = ?',
+      [userId, uploadedId]
+    );
+    return rows.length > 0;
+  }
+
+  static async addFavorite(userId, uploadedId) {
+    try {
+      await pool.execute(
+        'INSERT INTO favorite (user_id, uploaded_id) VALUES (?, ?)',
+        [userId, uploadedId]
+      );
+      return true;
+    } catch (error) {
+      // Ignore duplicate entry errors
+      if (error.code === 'ER_DUP_ENTRY') {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  static async removeFavorite(userId, uploadedId) {
+    const [result] = await pool.execute(
+      'DELETE FROM favorite WHERE user_id = ? AND uploaded_id = ?',
+      [userId, uploadedId]
+    );
+    return result.affectedRows > 0;
+  }
+
+  static async getUserFavorites(userId) {
+    const [rows] = await pool.execute(`
+      SELECT u.*,
+             img.filename as image_filename,
+             snd.filename as sound_filename,
+             cat.name as category_name, cat.color as category_color,
+             f.created_at as favorited_at
+      FROM favorite f
+      JOIN uploaded u ON f.uploaded_id = u.id
+      LEFT JOIN file img ON u.image_id = img.id
+      LEFT JOIN file snd ON u.sound_id = snd.id
+      LEFT JOIN category cat ON u.category_id = cat.id
+      WHERE f.user_id = ?
+      ORDER BY f.created_at DESC
+    `, [userId]);
+    return rows;
+  }
+
+  static async getFavoriteCount(uploadedId) {
+    const [rows] = await pool.execute(
+      'SELECT COUNT(*) as count FROM favorite WHERE uploaded_id = ?',
+      [uploadedId]
+    );
+    return rows[0].count;
+  }
+}
+
+// PlayHistory Model - Track recently played sounds
+export class PlayHistory {
+  static async addPlay(userId, uploadedId) {
+    await pool.execute(
+      'INSERT INTO play_history (user_id, uploaded_id) VALUES (?, ?)',
+      [userId, uploadedId]
+    );
+
+    // Update button stats
+    await ButtonStats.incrementPlayCount(uploadedId);
+  }
+
+  static async getUserHistory(userId, limit = 50) {
+    const [rows] = await pool.execute(`
+      SELECT u.*,
+             img.filename as image_filename,
+             snd.filename as sound_filename,
+             cat.name as category_name, cat.color as category_color,
+             ph.played_at
+      FROM play_history ph
+      JOIN uploaded u ON ph.uploaded_id = u.id
+      LEFT JOIN file img ON u.image_id = img.id
+      LEFT JOIN file snd ON u.sound_id = snd.id
+      LEFT JOIN category cat ON u.category_id = cat.id
+      WHERE ph.user_id = ?
+      ORDER BY ph.played_at DESC
+      LIMIT ?
+    `, [userId, limit]);
+    return rows;
+  }
+
+  static async getRecentlyPlayed(userId, limit = 10) {
+    const [rows] = await pool.execute(`
+      SELECT DISTINCT u.*,
+             img.filename as image_filename,
+             snd.filename as sound_filename,
+             cat.name as category_name, cat.color as category_color,
+             MAX(ph.played_at) as last_played
+      FROM play_history ph
+      JOIN uploaded u ON ph.uploaded_id = u.id
+      LEFT JOIN file img ON u.image_id = img.id
+      LEFT JOIN file snd ON u.sound_id = snd.id
+      LEFT JOIN category cat ON u.category_id = cat.id
+      WHERE ph.user_id = ?
+      GROUP BY u.id
+      ORDER BY last_played DESC
+      LIMIT ?
+    `, [userId, limit]);
+    return rows;
+  }
+
+  static async clearUserHistory(userId) {
+    await pool.execute(
+      'DELETE FROM play_history WHERE user_id = ?',
+      [userId]
+    );
+  }
+}
+
+// ButtonStats Model - Track button usage statistics
+export class ButtonStats {
+  static async incrementPlayCount(uploadedId) {
+    const [existing] = await pool.execute(
+      'SELECT * FROM button_stats WHERE uploaded_id = ?',
+      [uploadedId]
+    );
+
+    if (existing.length > 0) {
+      await pool.execute(
+        'UPDATE button_stats SET play_count = play_count + 1, last_played = NOW() WHERE uploaded_id = ?',
+        [uploadedId]
+      );
+    } else {
+      await pool.execute(
+        'INSERT INTO button_stats (uploaded_id, play_count, last_played) VALUES (?, 1, NOW())',
+        [uploadedId]
+      );
+    }
+  }
+
+  static async getButtonStats(uploadedId) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM button_stats WHERE uploaded_id = ?',
+      [uploadedId]
+    );
+    return rows[0] || { play_count: 0, last_played: null };
+  }
+
+  static async getMostPlayed(limit = 20) {
+    const [rows] = await pool.execute(`
+      SELECT u.*,
+             img.filename as image_filename,
+             snd.filename as sound_filename,
+             cat.name as category_name, cat.color as category_color,
+             bs.play_count, bs.last_played
+      FROM button_stats bs
+      JOIN uploaded u ON bs.uploaded_id = u.id
+      LEFT JOIN file img ON u.image_id = img.id
+      LEFT JOIN file snd ON u.sound_id = snd.id
+      LEFT JOIN category cat ON u.category_id = cat.id
+      ORDER BY bs.play_count DESC, bs.last_played DESC
+      LIMIT ?
+    `, [limit]);
+    return rows;
+  }
+
+  static async getAllStats() {
+    const [rows] = await pool.execute(
+      'SELECT * FROM button_stats ORDER BY play_count DESC'
     );
     return rows;
   }
