@@ -311,7 +311,7 @@ app.get('/api/linked', authenticateUser, async (req, res) => {
     const transformedLinked = linked.map(item => ({
       image_id: item.id,
       uploaded_id: item.uploaded_id,
-      button_name: item.name,
+      button_name: item.button_name,
       image_filename: item.image_filename,
       sound_filename: item.sound_filename,
       category_color: item.category_color || '#3B82F6'

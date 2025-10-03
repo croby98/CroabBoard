@@ -83,7 +83,7 @@ export const Navbar: React.FC = () => {
                     <a href="/home" className="btn btn-ghost text-xl font-bold">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                                <span className="text-base-100 text-lg">🎵</span>
+                               <img className="w-6 h-6" src="/public/favicon.ico" alt="CroabBoard" />
                             </div>
                             <span className="hidden sm:inline">CroabBoard</span>
                         </div>

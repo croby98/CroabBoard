@@ -64,7 +64,7 @@ const HomeButtons: React.FC = () => {
                 
                 
                 setButtons(transformedButtons);
-                
+
                 // Get user button size from /api/me endpoint
                 const userResponse = await fetch('http://localhost:5000/api/me', {
                     credentials: 'include'

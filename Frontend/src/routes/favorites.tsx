@@ -162,13 +162,37 @@ function FavoritesPage() {
 
             {/* Remove Confirmation Modal */}
             {itemToRemove && (
-                <div className="modal modal-open">
-                    <div className="modal-box">
-                        <h3 className="font-bold text-lg mb-4">Retirer des favoris</h3>
-                        <p className="py-4">
-                            Êtes-vous sûr de vouloir retirer <strong>{itemToRemove.name}</strong> de vos favoris ?
+                <div className="modal modal-open" onClick={() => setItemToRemove(null)}>
+                    <div className="modal-box relative" onClick={(e) => e.stopPropagation()}>
+                        {/* Close button */}
+                        <button
+                            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                            onClick={() => setItemToRemove(null)}
+                        >
+                            ✕
+                        </button>
+
+                        {/* Icon */}
+                        <div className="flex justify-center mb-4">
+                            <div className="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="font-bold text-xl text-center mb-2">Retirer des favoris</h3>
+
+                        {/* Message */}
+                        <p className="text-center py-4 text-base-content/80">
+                            Êtes-vous sûr de vouloir retirer<br />
+                            <strong className="text-lg">{itemToRemove.name}</strong><br />
+                            de vos favoris ?
                         </p>
-                        <div className="modal-action">
+
+                        {/* Actions */}
+                        <div className="modal-action justify-center gap-3">
                             <button
                                 className="btn btn-ghost"
                                 onClick={() => setItemToRemove(null)}
@@ -179,6 +203,9 @@ function FavoritesPage() {
                                 className="btn btn-error"
                                 onClick={confirmRemove}
                             >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                                 Retirer
                             </button>
                         </div>
