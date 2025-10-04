@@ -6,6 +6,8 @@ interface User {
     username: string;
     btn_size: number;
     button_count: number;
+    is_admin: boolean;
+    avatar: string | null;
 }
 
 interface DeletedButton {
@@ -43,7 +45,8 @@ const AdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'categories' | 'deleted'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'categories' | 'deleted' | 'audit'>('overview');
+    const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
     // Modal states
     const [itemToRestore, setItemToRestore] = useState<DeletedButton | null>(null);
@@ -52,8 +55,10 @@ const AdminDashboard: React.FC = () => {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newCategoryColor, setNewCategoryColor] = useState('#3b82f6');
 
-    // Access control - only allow owner/admin
-    if (!user || user.username !== 'Croby') {
+    const { isAdmin } = useAuth();
+
+    // Access control - only allow admin users
+    if (!isAdmin) {
         return (
             <div className="flex justify-center items-center min-h-screen bg-base-200">
                 <div className="card bg-base-100 shadow-xl">
@@ -77,7 +82,7 @@ const AdminDashboard: React.FC = () => {
         setLoading(true);
         try {
             // Fetch users
-            const usersResponse = await fetch('http://localhost:5000/api/users', {
+            const usersResponse = await fetch('http://localhost:5000/api/admin/users', {
                 credentials: 'include',
             });
             if (usersResponse.ok) {
@@ -96,25 +101,36 @@ const AdminDashboard: React.FC = () => {
                 }
             }
 
-            // Fetch deleted history
-            const deletedResponse = await fetch('http://localhost:5000/api/deleted_history', {
+            // Fetch deleted buttons
+            const deletedResponse = await fetch('http://localhost:5000/api/admin/deleted-buttons', {
                 credentials: 'include',
             });
             if (deletedResponse.ok) {
                 const deletedData = await deletedResponse.json();
                 if (deletedData.success) {
-                    setDeletedHistory(deletedData.history || []);
+                    setDeletedHistory(deletedData.buttons || []);
                 }
             }
 
-            // Fetch categories (from buttons endpoint)
-            const categoriesResponse = await fetch('http://localhost:5000/api/buttons', {
+            // Fetch categories
+            const categoriesResponse = await fetch('http://localhost:5000/api/categories', {
                 credentials: 'include',
             });
             if (categoriesResponse.ok) {
                 const catData = await categoriesResponse.json();
-                if (catData.success && catData.categories) {
-                    setCategories(catData.categories);
+                if (catData.success) {
+                    setCategories(catData.categories || []);
+                }
+            }
+
+            // Fetch audit logs
+            const auditResponse = await fetch('http://localhost:5000/api/admin/audit-logs?limit=50', {
+                credentials: 'include',
+            });
+            if (auditResponse.ok) {
+                const auditData = await auditResponse.json();
+                if (auditData.success) {
+                    setAuditLogs(auditData.logs || []);
                 }
             }
 
@@ -129,7 +145,7 @@ const AdminDashboard: React.FC = () => {
         if (!itemToRestore) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/restore_from_history/${itemToRestore.id}`, {
+            const response = await fetch(`http://localhost:5000/api/admin/deleted-buttons/${itemToRestore.id}/restore`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -153,7 +169,7 @@ const AdminDashboard: React.FC = () => {
         if (!userToDelete) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/users/${userToDelete.id}`, {
+            const response = await fetch(`http://localhost:5000/api/admin/users/${userToDelete.id}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -170,6 +186,26 @@ const AdminDashboard: React.FC = () => {
             setErrorMessage(error.message || 'Failed to delete user');
         } finally {
             setUserToDelete(null);
+        }
+    };
+
+    const handleToggleAdmin = async (userId: number) => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/toggle-admin`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSuccessMessage(data.message);
+                fetchDashboardData();
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                setErrorMessage(data.message || 'Failed to update admin status');
+            }
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Failed to update admin status');
         }
     };
 
@@ -201,6 +237,7 @@ const AdminDashboard: React.FC = () => {
                 setSuccessMessage(categoryToEdit ? 'Category updated successfully' : 'Category created successfully');
                 fetchDashboardData();
                 setTimeout(() => setSuccessMessage(''), 3000);
+                (document.getElementById('category_modal') as HTMLDialogElement)?.close();
                 setCategoryToEdit(null);
                 setNewCategoryName('');
                 setNewCategoryColor('#3b82f6');
@@ -209,6 +246,30 @@ const AdminDashboard: React.FC = () => {
             }
         } catch (error: any) {
             setErrorMessage(error.message || 'Failed to save category');
+        }
+    };
+
+    const handleDeleteCategory = async (categoryId: number) => {
+        if (!confirm('Are you sure you want to delete this category?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/categories/${categoryId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSuccessMessage('Category deleted successfully');
+                fetchDashboardData();
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                setErrorMessage(data.message || 'Failed to delete category');
+            }
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Failed to delete category');
         }
     };
 
@@ -294,6 +355,15 @@ const AdminDashboard: React.FC = () => {
                             </span>
                         )}
                     </a>
+                    <a
+                        className={`tab tab-lg ${activeTab === 'audit' ? 'tab-active' : ''}`}
+                        onClick={() => setActiveTab('audit')}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Audit Logs
+                    </a>
                 </div>
 
                 {/* Overview Tab */}
@@ -378,7 +448,8 @@ const AdminDashboard: React.FC = () => {
                                     <thead>
                                         <tr>
                                             <th>ID</th>
-                                            <th>Username</th>
+                                            <th>User</th>
+                                            <th>Role</th>
                                             <th>Button Size</th>
                                             <th>Buttons</th>
                                             <th>Actions</th>
@@ -390,26 +461,52 @@ const AdminDashboard: React.FC = () => {
                                                 <td>{u.id}</td>
                                                 <td>
                                                     <div className="flex items-center gap-3">
-                                                        <div className="avatar placeholder">
-                                                            <div className="bg-neutral text-neutral-content rounded-full w-8">
-                                                                <span className="text-xs">{u.username[0].toUpperCase()}</span>
+                                                        <div className="avatar">
+                                                            <div className="w-10 rounded-full ring-2 ring-base-300">
+                                                                {u.avatar ? (
+                                                                    <img src={`http://localhost:5000/uploads/avatars/${u.avatar}`} alt={u.username} />
+                                                                ) : (
+                                                                    <div className="bg-neutral text-neutral-content flex items-center justify-center w-full h-full">
+                                                                        <span className="text-sm">{u.username[0].toUpperCase()}</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                        <div className="font-bold">{u.username}</div>
+                                                        <div>
+                                                            <div className="font-bold">{u.username}</div>
+                                                        </div>
                                                     </div>
+                                                </td>
+                                                <td>
+                                                    {u.is_admin ? (
+                                                        <span className="badge badge-primary">Admin</span>
+                                                    ) : (
+                                                        <span className="badge badge-ghost">User</span>
+                                                    )}
                                                 </td>
                                                 <td>{u.btn_size}px</td>
                                                 <td>
                                                     <span className="badge badge-ghost">{u.button_count}</span>
                                                 </td>
                                                 <td>
-                                                    <button
-                                                        className="btn btn-error btn-sm"
-                                                        onClick={() => setUserToDelete(u)}
-                                                        disabled={u.username === 'Croby'}
-                                                    >
-                                                        Delete
-                                                    </button>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            className={`btn btn-sm ${u.is_admin ? 'btn-warning' : 'btn-info'}`}
+                                                            onClick={() => handleToggleAdmin(u.id)}
+                                                            disabled={u.id === user?.id}
+                                                            title={u.id === user?.id ? "Can't modify your own admin status" : "Toggle admin status"}
+                                                        >
+                                                            {u.is_admin ? 'Revoke Admin' : 'Make Admin'}
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-error btn-sm"
+                                                            onClick={() => setUserToDelete(u)}
+                                                            disabled={u.id === user?.id}
+                                                            title={u.id === user?.id ? "Can't delete yourself" : "Delete user"}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -469,6 +566,12 @@ const AdminDashboard: React.FC = () => {
                                                         }}
                                                     >
                                                         Edit
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm btn-error"
+                                                        onClick={() => handleDeleteCategory(cat.id)}
+                                                    >
+                                                        Delete
                                                     </button>
                                                 </div>
                                             </div>
@@ -542,6 +645,82 @@ const AdminDashboard: React.FC = () => {
                                         <p className="opacity-60 text-lg">No deleted items found</p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Audit Logs Tab */}
+                {activeTab === 'audit' && (
+                    <div className="card bg-base-100 shadow-xl">
+                        <div className="card-body">
+                            <h2 className="card-title">Audit Logs</h2>
+                            <div className="overflow-x-auto">
+                                <table className="table table-zebra table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>User</th>
+                                            <th>Action</th>
+                                            <th>IP Address</th>
+                                            <th>Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {auditLogs.length > 0 ? (
+                                            auditLogs.map((log) => (
+                                                <tr key={log.id}>
+                                                    <td className="whitespace-nowrap">
+                                                        {new Date(log.created_at).toLocaleString()}
+                                                    </td>
+                                                    <td>
+                                                        <span className="font-medium">
+                                                            {log.username || 'anonymous'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span
+                                                            className={`badge badge-sm ${
+                                                                log.action.includes('failed')
+                                                                    ? 'badge-error'
+                                                                    : log.action.includes('success') || log.action.includes('login')
+                                                                    ? 'badge-success'
+                                                                    : log.action.includes('delete')
+                                                                    ? 'badge-warning'
+                                                                    : 'badge-info'
+                                                            }`}
+                                                        >
+                                                            {log.action}
+                                                        </span>
+                                                    </td>
+                                                    <td className="font-mono text-xs">
+                                                        {log.ip_address || 'N/A'}
+                                                    </td>
+                                                    <td>
+                                                        {log.details && (
+                                                            <details className="collapse collapse-arrow bg-base-200 rounded-box">
+                                                                <summary className="collapse-title text-xs py-1 min-h-0 cursor-pointer">
+                                                                    View Details
+                                                                </summary>
+                                                                <div className="collapse-content">
+                                                                    <pre className="text-xs overflow-x-auto">
+                                                                        {JSON.stringify(JSON.parse(log.details || '{}'), null, 2)}
+                                                                    </pre>
+                                                                </div>
+                                                            </details>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={5} className="text-center py-8 opacity-60">
+                                                    No audit logs found
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

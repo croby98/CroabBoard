@@ -518,14 +518,14 @@ app.post('/api/buttons', authenticateUser, upload.fields([
   { name: 'sound', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { ButtonName, CategoryName } = req.body;
+    const { ButtonName, CategoryName, CategoryId } = req.body;
     const imageFile = req.files.image?.[0];
     const soundFile = req.files.sound?.[0];
 
     if (!imageFile || !soundFile || !ButtonName) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Image, sound, and button name are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Image, sound, and button name are required'
       });
     }
 
@@ -541,12 +541,14 @@ app.post('/api/buttons', authenticateUser, upload.fields([
       type: 'sound'
     });
 
-    // Handle category
+    // Handle category - support both CategoryId and CategoryName
     let categoryId = null;
-    if (CategoryName) {
+    if (CategoryId) {
+      categoryId = parseInt(CategoryId);
+    } else if (CategoryName) {
       let category = await Category.findByName(CategoryName);
       if (!category) {
-        category = await Category.create({ name: CategoryName });
+        category = await Category.create({ name: CategoryName, color: '#3b82f6' });
       }
       categoryId = category.id;
     }
@@ -686,7 +688,7 @@ app.put('/api/users/:id', authenticateUser, async (req, res) => {
 // Category routes
 app.get('/api/categories', async (req, res) => {
   try {
-    const categories = await Category.getAll();
+    const categories = await Category.getAllWithButtonCount();
     res.json({ success: true, categories });
   } catch (error) {
     console.error('Error getting categories:', error);

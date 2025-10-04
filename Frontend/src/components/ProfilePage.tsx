@@ -170,7 +170,8 @@ const ProfilePage: React.FC = () => {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                setButtons(buttons.filter(b => b.image_id !== buttonToDelete.imageId));
+                // Filter using uploaded_id instead of image_id
+                setButtons(buttons.filter(b => b.uploaded_id !== uploadedIdToDelete));
                 setSuccessMessage('Button deleted successfully');
                 setTimeout(() => setSuccessMessage(''), 3000);
             } else {

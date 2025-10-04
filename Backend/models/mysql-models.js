@@ -142,6 +142,17 @@ export class Category {
     return rows;
   }
 
+  static async getAllWithButtonCount() {
+    const [rows] = await pool.execute(`
+      SELECT c.*, COUNT(u.id) as button_count
+      FROM category c
+      LEFT JOIN uploaded u ON c.id = u.category_id
+      GROUP BY c.id
+      ORDER BY c.name
+    `);
+    return rows;
+  }
+
   static async findByName(name) {
     const [rows] = await pool.execute(
       'SELECT * FROM category WHERE name = ?',
@@ -660,10 +671,28 @@ export class ButtonStats {
   }
 
   static async getAllStats() {
-    const [rows] = await pool.execute(
-      'SELECT * FROM button_stats ORDER BY play_count DESC'
-    );
-    return rows;
+    // Get all statistics for admin dashboard
+    const [totalUsers] = await pool.execute('SELECT COUNT(*) as count FROM user');
+    const [totalButtons] = await pool.execute('SELECT COUNT(*) as count FROM uploaded');
+    const [totalCategories] = await pool.execute('SELECT COUNT(*) as count FROM category');
+    const [totalDeleted] = await pool.execute('SELECT COUNT(*) as count FROM deleted_button WHERE status = "deleted"');
+    const [totalPlays] = await pool.execute('SELECT COALESCE(SUM(play_count), 0) as count FROM button_stats');
+
+    // Active users today (users who played a button today)
+    const [activeToday] = await pool.execute(`
+      SELECT COUNT(DISTINCT ph.user_id) as count
+      FROM play_history ph
+      WHERE DATE(ph.played_at) = CURDATE()
+    `);
+
+    return {
+      total_users: totalUsers[0].count,
+      total_buttons: totalButtons[0].count,
+      total_categories: totalCategories[0].count,
+      total_deleted: totalDeleted[0].count,
+      total_plays: totalPlays[0].count,
+      active_users_today: activeToday[0].count
+    };
   }
 }
 

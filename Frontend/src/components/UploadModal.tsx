@@ -1,19 +1,47 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UploadModalProps {
     isOpen: boolean;
     closeModal: () => void;
 }
 
+interface Category {
+    id: number;
+    name: string;
+    color: string;
+}
+
 const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [buttonName, setButtonName] = useState('');
-    const [categoryName, setCategoryName] = useState('');
+    const [categoryId, setCategoryId] = useState<number | null>(null);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const dropRef = useRef<HTMLDivElement | null>(null);
+
+    // Fetch categories when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            fetchCategories();
+        }
+    }, [isOpen]);
+
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch('http://localhost:5000/api/categories', {
+                credentials: 'include',
+            });
+            const data = await response.json();
+            if (data.success) {
+                setCategories(data.categories);
+            }
+        } catch (error) {
+            console.error('Failed to fetch categories:', error);
+        }
+    };
 
     const assignFilesFromList = useCallback((files: FileList | File[]) => {
         const fileArray = Array.from(files);
@@ -63,8 +91,8 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
             formData.append('image', imageFile);
             formData.append('sound', audioFile);
             formData.append('ButtonName', buttonName);
-            if (categoryName) {
-                formData.append('CategoryName', categoryName);
+            if (categoryId) {
+                formData.append('CategoryId', categoryId.toString());
             }
 
             const response = await fetch('http://localhost:5000/api/buttons', {
@@ -80,7 +108,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                 setImageFile(null);
                 setAudioFile(null);
                 setButtonName('');
-                setCategoryName('');
+                setCategoryId(null);
                 closeModal();
                 // Optionally refresh the page or emit an event to refresh button lists
                 window.location.reload();
@@ -180,6 +208,26 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                             required
                             disabled={isUploading}
                         />
+                    </div>
+
+                    {/* Category Select */}
+                    <div className="form-control">
+                        <label className="label">
+                            <span className="label-text">Category (Optional)</span>
+                        </label>
+                        <select
+                            value={categoryId || ''}
+                            onChange={(e) => setCategoryId(e.target.value ? parseInt(e.target.value) : null)}
+                            className="select select-bordered w-full"
+                            disabled={isUploading}
+                        >
+                            <option value="">No category</option>
+                            {categories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Drag & Drop Zone */}
