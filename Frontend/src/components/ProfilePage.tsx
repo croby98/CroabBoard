@@ -9,6 +9,7 @@ interface UserProfile {
 
 interface Button {
     image_id: number;
+    uploaded_id: number;
     sound_id?: number | null;
     button_name: string;
     image_filename: string;
@@ -22,6 +23,7 @@ const ProfilePage: React.FC = () => {
     const [username, setUsername] = useState('');
     const [buttons, setButtons] = useState<Button[]>([]);
     const [buttonSize, setButtonSize] = useState(150);
+    const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(true);
@@ -90,7 +92,15 @@ const ProfilePage: React.FC = () => {
 
     const handlePasswordReset = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
+        setErrorMessage('');
+        setSuccessMessage('');
+
+        if (!currentPassword) {
+            setErrorMessage('Current password is required');
+            return;
+        }
+
         if (newPassword !== confirmPassword) {
             setErrorMessage('Passwords do not match');
             return;
@@ -109,7 +119,8 @@ const ProfilePage: React.FC = () => {
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    password: newPassword,
+                    currentPassword: currentPassword,
+                    newPassword: newPassword,
                     confirmPassword: confirmPassword,
                 }),
             });
@@ -117,6 +128,7 @@ const ProfilePage: React.FC = () => {
             const data = await response.json();
             if (response.ok && data.success) {
                 setSuccessMessage('Password updated successfully');
+                setCurrentPassword('');
                 setNewPassword('');
                 setConfirmPassword('');
                 setTimeout(() => setSuccessMessage(''), 3000);
@@ -136,17 +148,31 @@ const ProfilePage: React.FC = () => {
         if (!buttonToDelete) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/delete_from_bdd/${buttonToDelete.imageId}/${buttonToDelete.soundId || 0}`, {
+            // Find the uploaded_id from the button
+            const buttonData = buttons.find(b => b.image_id === buttonToDelete.imageId);
+            if (!buttonData) {
+                setErrorMessage('Button not found');
+                setButtonToDelete(null);
+                return;
+            }
+
+            // Use uploaded_id from the button data to get the correct ID for deletion
+            // The Linked table uses uploaded_id, not image_id
+            const uploadedIdToDelete = buttonData.uploaded_id || buttonToDelete.imageId;
+
+            const response = await fetch(`http://localhost:5000/api/link/${uploadedIdToDelete}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
 
-            if (response.ok) {
+            const data = await response.json();
+
+            if (response.ok && data.success) {
                 setButtons(buttons.filter(b => b.image_id !== buttonToDelete.imageId));
                 setSuccessMessage('Button deleted successfully');
                 setTimeout(() => setSuccessMessage(''), 3000);
             } else {
-                setErrorMessage('Failed to delete button');
+                setErrorMessage(data.error || 'Failed to delete button');
             }
         } catch (error: any) {
             setErrorMessage(error.message || 'Failed to delete button');
@@ -240,6 +266,19 @@ const ProfilePage: React.FC = () => {
                                 <form onSubmit={handlePasswordReset} className="space-y-4">
                                     <div className="form-control">
                                         <label className="label">
+                                            <span className="label-text">Current Password</span>
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={currentPassword}
+                                            onChange={(e) => setCurrentPassword(e.target.value)}
+                                            className="input input-bordered w-full"
+                                            placeholder="Enter current password"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-control">
+                                        <label className="label">
                                             <span className="label-text">New Password</span>
                                         </label>
                                         <input
@@ -253,7 +292,7 @@ const ProfilePage: React.FC = () => {
                                     </div>
                                     <div className="form-control">
                                         <label className="label">
-                                            <span className="label-text">Confirm Password</span>
+                                            <span className="label-text">Confirm New Password</span>
                                         </label>
                                         <input
                                             type="password"
