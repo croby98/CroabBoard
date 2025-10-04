@@ -4,14 +4,18 @@ interface User {
     id: number;
     username: string;
     btnSize: number;
+    isAdmin: boolean;
+    avatar: string | null;
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
     isAuthenticated: boolean;
+    isAdmin: boolean;
     login: (username: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
+    updateAvatar: (avatar: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,6 +70,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const updateAvatar = (avatar: string | null) => {
+        if (user) {
+            setUser({ ...user, avatar });
+        }
+    };
+
     // Check if user is already logged in on app start
     useEffect(() => {
         const checkAuthStatus = async () => {
@@ -99,12 +109,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     return (
-        <AuthContext.Provider value={{ 
-            user, 
-            loading, 
+        <AuthContext.Provider value={{
+            user,
+            loading,
             isAuthenticated: !!user,
-            login, 
-            logout
+            isAdmin: user?.isAdmin || false,
+            login,
+            logout,
+            updateAvatar
         }}>
             {children}
         </AuthContext.Provider>

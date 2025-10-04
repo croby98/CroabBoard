@@ -65,7 +65,7 @@ function App() {
                 <div className="text-center lg:text-left lg:ml-8">
                     <div className="flex items-center justify-center lg:justify-start mb-4">
                         <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mr-4">
-                            <img className="w-10 h-10" src="/public/favicon.ico" alt="CroabBoard" />
+                            <img className="w-10 h-10" src="/favicon.ico" alt="CroabBoard" />
                         </div>
                         <div>
                             <h1 className="text-5xl font-bold text-base-content">CroabBoard</h1>

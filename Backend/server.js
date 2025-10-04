@@ -18,11 +18,20 @@ import {
   Favorite,
   PlayHistory,
   ButtonStats,
+  DeleteHistory,
   testConnection
 } from './models/mysql-models.js';
 
+// Import audit log
+import AuditLog from './models/AuditLog.js';
+import { logAction } from './middleware/auditLogger.js';
+
 // Import auth middleware
 import { authenticateUser, requireAdmin } from './middleware/auth.js';
+
+// Import route modules
+import adminRoutes from './routes/admin.js';
+import userRoutes from './routes/user.js';
 
 dotenv.config();
 
@@ -42,6 +51,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const uploadsDir = 'uploads';
 const uploadsImagesDir = path.join(uploadsDir, 'images');
 const uploadsAudioDir = path.join(uploadsDir, 'audio');
+const uploadsAvatarsDir = path.join(uploadsDir, 'avatars');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -51,14 +61,11 @@ if (!fs.existsSync(uploadsImagesDir)) {
 if (!fs.existsSync(uploadsAudioDir)) {
   fs.mkdirSync(uploadsAudioDir, { recursive: true });
 }
+if (!fs.existsSync(uploadsAvatarsDir)) {
+  fs.mkdirSync(uploadsAvatarsDir, { recursive: true });
+}
 
-// Serve static files from uploads folder
-app.use('/uploads', express.static('uploads'));
-
-// Serve frontend test file
-app.use('/test', express.static('../Frontend'));
-
-// Session configuration (simple for development)
+// Session configuration (MUST be before routes)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'croabboard-secret-key',
   resave: false,
@@ -68,6 +75,16 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
+
+// Serve static files from uploads folder
+app.use('/uploads', express.static('uploads'));
+
+// Serve frontend test file
+app.use('/test', express.static('../Frontend'));
+
+// Mount route modules
+app.use('/api/admin', adminRoutes);
+app.use('/api/user', userRoutes);
 
 // File upload configuration
 const upload = multer({
@@ -123,6 +140,8 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
+      // Log failed login attempt
+      await logAction(req, 'login_failed', { reason: 'missing_credentials', username: username || 'unknown' });
       return res.status(400).json({ success: false, message: 'Username and password are required' });
     }
 
@@ -130,36 +149,48 @@ app.post('/api/login', async (req, res) => {
     const user = await User.findByUsername(username);
 
     if (!user) {
+      // Log failed login attempt
+      await logAction(req, 'login_failed', { reason: 'invalid_username', username });
       return res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
 
     // Verify password
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
+      // Log failed login attempt
+      await logAction(req, 'login_failed', { reason: 'invalid_password', username, userId: user.id });
       return res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
 
-    // Store user info in session
+    // Store user info in session including admin status and avatar
     req.session.user = {
       id: user.id,
       username: user.username,
-      btnSize: user.btn_size
+      btnSize: user.btn_size,
+      isAdmin: user.is_admin || false,
+      avatar: user.avatar || null
     };
 
     // Save session before responding to ensure it's persistent
-    req.session.save((err) => {
+    req.session.save(async (err) => {
       if (err) {
         console.error('Session save error:', err);
+        await logAction(req, 'login_failed', { reason: 'session_error', username, userId: user.id });
         return res.status(500).json({ success: false, message: 'Session save failed' });
       }
-      
+
+      // Log successful login
+      await logAction(req, 'login_success', { username, userId: user.id, isAdmin: user.is_admin });
+
       res.json({
         success: true,
         message: 'Login successful',
         user: {
           id: user.id,
           username: user.username,
-          btnSize: user.btn_size
+          btnSize: user.btn_size,
+          isAdmin: user.is_admin || false,
+          avatar: user.avatar || null
         }
       });
     });
@@ -182,13 +213,15 @@ app.get('/api/me', authenticateUser, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json({
       success: true,
       user: {
         id: user.id,
         username: user.username,
-        btnSize: user.btn_size
+        btnSize: user.btn_size,
+        isAdmin: user.is_admin || false,
+        avatar: user.avatar || null
       }
     });
   } catch (error) {
@@ -278,11 +311,12 @@ app.get('/api/profil', authenticateUser, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Get user's uploaded buttons (matching Python query)
-    const uploaded = await Uploaded.getByUser(req.user.id);
-    
+    // Get user's linked buttons (their collection)
+    const linked = await Linked.findByUser(req.user.id);
+
     // Transform to match Python response format
-    const buttons = uploaded.map(item => ({
+    const buttons = linked.map(item => ({
+      uploaded_id: item.uploaded_id,
       image_id: item.image_id,
       sound_id: item.sound_id,
       button_name: item.button_name,
@@ -290,7 +324,7 @@ app.get('/api/profil', authenticateUser, async (req, res) => {
       sound_filename: item.sound_filename,
       category_color: item.category_color || null
     }));
-    
+
     res.json({
       success: true,
       buttons: buttons,
@@ -784,6 +818,28 @@ app.delete('/api/link/:uploadedId', authenticateUser, async (req, res) => {
   try {
     const { uploadedId } = req.params;
 
+    // Get button data before deleting
+    const linked = await Linked.findByUser(req.user.id);
+    const button = linked.find(b => b.uploaded_id === parseInt(uploadedId));
+
+    if (!button) {
+      return res.status(404).json({ error: 'Button not found' });
+    }
+
+    // Create deleted_button entry (files stay on disk for restore)
+    await DeleteHistory.create({
+      ownerId: req.user.id,
+      uploadedId: button.uploaded_id,
+      buttonName: button.button_name,
+      soundFilename: button.sound_filename,
+      imageFilename: button.image_filename,
+      imageId: button.image_id,
+      soundId: button.sound_id,
+      categoryId: null, // Add if you track category_id
+      status: 'deleted'
+    });
+
+    // Remove from linked table (unlink from user's collection)
     await Linked.delete(req.user.id, uploadedId);
 
     res.json({ success: true });

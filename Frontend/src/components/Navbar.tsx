@@ -12,7 +12,7 @@ export const Navbar: React.FC = () => {
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
 
-    const { user, logout } = useAuth(); // Access the `logout` method from AuthContext
+    const { user, logout, isAdmin } = useAuth(); // Access the `logout` method from AuthContext
     const { theme, toggleTheme } = useTheme(); // Access theme methods
     const navigate = useNavigate();
 
@@ -83,7 +83,7 @@ export const Navbar: React.FC = () => {
                     <a href="/home" className="btn btn-ghost text-xl font-bold">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                               <img className="w-6 h-6" src="/public/favicon.ico" alt="CroabBoard" />
+                               <img className="w-6 h-6" src="/favicon.ico" alt="CroabBoard" />
                             </div>
                             <span className="hidden sm:inline">CroabBoard</span>
                         </div>
@@ -125,14 +125,33 @@ export const Navbar: React.FC = () => {
                         <div className="dropdown dropdown-end">
                             <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
                                 <div className="w-10 rounded-full ring-2 ring-base-300 ring-offset-base-100 ring-offset-2">
-                                    <img
-                                        alt={user?.username || 'User'}
-                                        src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                                        className="rounded-full"
-                                    />
+                                    {user?.avatar ? (
+                                        <img
+                                            alt={user?.username || 'User'}
+                                            src={`http://localhost:5000/uploads/avatars/${user.avatar}`}
+                                            className="rounded-full"
+                                        />
+                                    ) : (
+                                        <div className="bg-base-300 w-full h-full flex items-center justify-center rounded-full">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow-xl bg-base-100 rounded-box w-64 border border-base-300">
+                                {/* User info header */}
+                                <li className="menu-title">
+                                    <div className="flex items-center gap-2 px-2 py-1">
+                                        <span className="font-semibold">{user?.username}</span>
+                                        {isAdmin && (
+                                            <span className="badge badge-primary badge-sm">Admin</span>
+                                        )}
+                                    </div>
+                                </li>
+                                <div className="divider my-1"></div>
+
                                 <li>
                                     <a href="/profile" className="flex items-center gap-3">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +160,7 @@ export const Navbar: React.FC = () => {
                                         Profile Settings
                                     </a>
                                 </li>
-                                {user?.username === 'Croby' && (
+                                {isAdmin && (
                                     <li>
                                         <a href="/admin" className="flex items-center gap-3">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

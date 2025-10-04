@@ -73,6 +73,39 @@ export class User {
     );
     return await this.findById(userId);
   }
+
+  static async updateAvatar(userId, avatarFilename) {
+    await pool.execute(
+      'UPDATE user SET avatar = ? WHERE id = ?',
+      [avatarFilename, userId]
+    );
+    return await this.findById(userId);
+  }
+
+  static async updateAdminStatus(userId, isAdmin) {
+    await pool.execute(
+      'UPDATE user SET is_admin = ? WHERE id = ?',
+      [isAdmin, userId]
+    );
+    return await this.findById(userId);
+  }
+
+  static async getAllWithStats() {
+    const [rows] = await pool.execute(`
+      SELECT u.*,
+             COUNT(DISTINCT l.uploaded_id) as button_count
+      FROM user u
+      LEFT JOIN linked l ON u.id = l.user_id
+      GROUP BY u.id
+      ORDER BY u.username
+    `);
+    return rows;
+  }
+
+  static async delete(userId) {
+    const [result] = await pool.execute('DELETE FROM user WHERE id = ?', [userId]);
+    return result.affectedRows > 0;
+  }
 }
 
 // Category Model
@@ -359,10 +392,12 @@ export class Linked {
 // Delete History Model (if needed)
 export class DeleteHistory {
   static async create(historyData) {
-    const { ownerId, buttonName, soundFilename, imageFilename, status = 'deleted' } = historyData;
+    const { ownerId, uploadedId, buttonName, soundFilename, imageFilename, imageId, soundId, categoryId, status = 'deleted' } = historyData;
     const [result] = await pool.execute(
-      'INSERT INTO deleted_button (owner_id, button_name, sound_filename, image_filename, status, delete_date) VALUES (?, ?, ?, ?, ?, NOW())',
-      [ownerId, buttonName, soundFilename, imageFilename, status]
+      `INSERT INTO deleted_button
+       (owner_id, uploaded_id, button_name, sound_filename, image_filename, image_id, sound_id, category_id, status, delete_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [ownerId, uploadedId, buttonName, soundFilename, imageFilename, imageId, soundId, categoryId, status]
     );
     return { id: result.insertId, ...historyData };
   }
@@ -373,6 +408,32 @@ export class DeleteHistory {
       [userId]
     );
     return rows;
+  }
+
+  static async getAll() {
+    const [rows] = await pool.execute(
+      'SELECT * FROM deleted_button ORDER BY delete_date DESC'
+    );
+    return rows;
+  }
+
+  static async restore(id) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM deleted_button WHERE id = ?',
+      [id]
+    );
+    if (rows.length === 0) {
+      throw new Error('Deleted button not found');
+    }
+    const deletedButton = rows[0];
+
+    // Mark as restored
+    await pool.execute(
+      "UPDATE deleted_button SET status = 'restored' WHERE id = ?",
+      [id]
+    );
+
+    return deletedButton;
   }
 }
 

@@ -1,30 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
-import { adminStorage } from '../firebase-config.js';
 import path from 'path';
 
-// Safe bucket access with fallback
-const getBucket = () => {
-  if (!adminStorage) {
-    console.warn('Firebase Storage not available - using mock storage');
-    return null;
-  }
-  
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
-  if (!bucketName) {
-    console.warn('FIREBASE_STORAGE_BUCKET not configured - using mock storage');
-    return null;
-  }
-  
-  try {
-    return adminStorage.bucket(bucketName);
-  } catch (error) {
-    console.warn('Could not access Firebase Storage bucket:', error.message);
-    return null;
-  }
-};
-
 /**
- * Upload a file to Firebase Storage
+ * Upload a file to local storage
  * @param {Buffer} fileBuffer - The file buffer
  * @param {string} originalName - Original filename
  * @param {string} fileType - Type of file (image/sound)

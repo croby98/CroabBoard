@@ -2,7 +2,7 @@
   "name": "croabboard-backend",
   "version": "1.0.0",
   "type": "module",
-  "description": "CroabBoard Backend - Node.js/Express with Firebase",
+  "description": "CroabBoard Backend - Node.js/Express with MySQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -18,30 +18,52 @@ interface DeletedButton {
     owner_id: number;
 }
 
+interface Category {
+    id: number;
+    name: string;
+    color: string;
+    button_count?: number;
+}
+
 interface SystemStats {
     total_users: number;
     total_buttons: number;
     total_deleted: number;
     total_categories: number;
+    total_plays: number;
+    active_users_today: number;
 }
 
 const AdminDashboard: React.FC = () => {
     const { user } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [deletedHistory, setDeletedHistory] = useState<DeletedButton[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [stats, setStats] = useState<SystemStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'deleted'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'categories' | 'deleted'>('overview');
 
-    // Access control - only allow Croby to access admin dashboard
+    // Modal states
+    const [itemToRestore, setItemToRestore] = useState<DeletedButton | null>(null);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [newCategoryColor, setNewCategoryColor] = useState('#3b82f6');
+
+    // Access control - only allow owner/admin
     if (!user || user.username !== 'Croby') {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
-                <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-                    <p className="text-gray-400">You do not have permission to access the admin dashboard.</p>
+            <div className="flex justify-center items-center min-h-screen bg-base-200">
+                <div className="card bg-base-100 shadow-xl">
+                    <div className="card-body text-center">
+                        <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+                        <p className="opacity-70">You do not have permission to access the admin dashboard.</p>
+                        <div className="card-actions justify-center mt-4">
+                            <a href="/home" className="btn btn-primary">Go to Home</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -54,32 +76,45 @@ const AdminDashboard: React.FC = () => {
     const fetchDashboardData = async () => {
         setLoading(true);
         try {
-            // Note: These endpoints would need to be implemented in the backend
-            // For now, we'll show the structure with mock data
-            
-            // Mock data - replace with actual API calls
-            setStats({
-                total_users: 25,
-                total_buttons: 150,
-                total_deleted: 12,
-                total_categories: 8
-            });
-
-            setUsers([
-                { id: 1, username: 'user1', btn_size: 150, button_count: 15 },
-                { id: 2, username: 'user2', btn_size: 200, button_count: 8 },
-            ]);
-
-            // Fetch actual deleted history
-            const deletedResponse = await fetch('http://localhost:5000/api/deleted_history', {
-                method: 'GET',
+            // Fetch users
+            const usersResponse = await fetch('http://localhost:5000/api/users', {
                 credentials: 'include',
             });
+            if (usersResponse.ok) {
+                const usersData = await usersResponse.json();
+                setUsers(usersData.users || []);
+            }
 
+            // Fetch stats
+            const statsResponse = await fetch('http://localhost:5000/api/stats/all', {
+                credentials: 'include',
+            });
+            if (statsResponse.ok) {
+                const statsData = await statsResponse.json();
+                if (statsData.success) {
+                    setStats(statsData.stats);
+                }
+            }
+
+            // Fetch deleted history
+            const deletedResponse = await fetch('http://localhost:5000/api/deleted_history', {
+                credentials: 'include',
+            });
             if (deletedResponse.ok) {
                 const deletedData = await deletedResponse.json();
                 if (deletedData.success) {
                     setDeletedHistory(deletedData.history || []);
+                }
+            }
+
+            // Fetch categories (from buttons endpoint)
+            const categoriesResponse = await fetch('http://localhost:5000/api/buttons', {
+                credentials: 'include',
+            });
+            if (categoriesResponse.ok) {
+                const catData = await categoriesResponse.json();
+                if (catData.success && catData.categories) {
+                    setCategories(catData.categories);
                 }
             }
 
@@ -90,175 +125,547 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleRestoreButton = async (historyId: number) => {
+    const handleRestoreButton = async () => {
+        if (!itemToRestore) return;
+
         try {
-            const response = await fetch(`http://localhost:5000/api/restore_from_history/${historyId}`, {
+            const response = await fetch(`http://localhost:5000/api/restore_from_history/${itemToRestore.id}`, {
                 method: 'POST',
                 credentials: 'include',
             });
 
             const data = await response.json();
             if (response.ok && data.success) {
-                setSuccessMessage('Button restored successfully');
-                fetchDashboardData(); // Refresh data
+                setSuccessMessage(`Button "${itemToRestore.button_name}" restored successfully`);
+                fetchDashboardData();
                 setTimeout(() => setSuccessMessage(''), 3000);
             } else {
                 setErrorMessage(data.message || 'Failed to restore button');
             }
         } catch (error: any) {
             setErrorMessage(error.message || 'Failed to restore button');
+        } finally {
+            setItemToRestore(null);
+        }
+    };
+
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return;
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/users/${userToDelete.id}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSuccessMessage(`User "${userToDelete.username}" deleted successfully`);
+                fetchDashboardData();
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                setErrorMessage(data.message || 'Failed to delete user');
+            }
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Failed to delete user');
+        } finally {
+            setUserToDelete(null);
+        }
+    };
+
+    const handleSaveCategory = async () => {
+        if (!newCategoryName.trim()) {
+            setErrorMessage('Category name is required');
+            return;
+        }
+
+        try {
+            const url = categoryToEdit
+                ? `http://localhost:5000/api/categories/${categoryToEdit.id}`
+                : 'http://localhost:5000/api/categories';
+
+            const response = await fetch(url, {
+                method: categoryToEdit ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    name: newCategoryName,
+                    color: newCategoryColor,
+                }),
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSuccessMessage(categoryToEdit ? 'Category updated successfully' : 'Category created successfully');
+                fetchDashboardData();
+                setTimeout(() => setSuccessMessage(''), 3000);
+                setCategoryToEdit(null);
+                setNewCategoryName('');
+                setNewCategoryColor('#3b82f6');
+            } else {
+                setErrorMessage(data.message || 'Failed to save category');
+            }
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Failed to save category');
         }
     };
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="text-white">Loading dashboard...</div>
+            <div className="flex justify-center items-center min-h-screen bg-base-200">
+                <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-6">
+        <div className="min-h-screen bg-base-200 p-6">
             <div className="max-w-7xl mx-auto">
-                <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold">Admin Dashboard</h1>
+                    <div className="badge badge-primary badge-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Admin Access
+                    </div>
+                </div>
 
                 {errorMessage && (
-                    <div className="mb-4 p-4 bg-red-900 border border-red-700 rounded text-red-100">
-                        {errorMessage}
+                    <div className="alert alert-error mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{errorMessage}</span>
                     </div>
                 )}
 
                 {successMessage && (
-                    <div className="mb-4 p-4 bg-green-900 border border-green-700 rounded text-green-100">
-                        {successMessage}
+                    <div className="alert alert-success mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{successMessage}</span>
                     </div>
                 )}
 
-                {/* Tab Navigation */}
-                <div className="flex space-x-1 mb-8">
-                    {[
-                        { key: 'overview', label: 'Overview' },
-                        { key: 'users', label: 'Users' },
-                        { key: 'deleted', label: 'Deleted Items' },
-                    ].map((tab) => (
-                        <button
-                            key={tab.key}
-                            onClick={() => setActiveTab(tab.key as any)}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                                activeTab === tab.key
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                            }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
+                {/* Tabs */}
+                <div className="tabs tabs-boxed mb-8">
+                    <a
+                        className={`tab tab-lg ${activeTab === 'overview' ? 'tab-active' : ''}`}
+                        onClick={() => setActiveTab('overview')}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Overview
+                    </a>
+                    <a
+                        className={`tab tab-lg ${activeTab === 'users' ? 'tab-active' : ''}`}
+                        onClick={() => setActiveTab('users')}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Users
+                    </a>
+                    <a
+                        className={`tab tab-lg ${activeTab === 'categories' ? 'tab-active' : ''}`}
+                        onClick={() => setActiveTab('categories')}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Categories
+                    </a>
+                    <a
+                        className={`tab tab-lg ${activeTab === 'deleted' ? 'tab-active' : ''}`}
+                        onClick={() => setActiveTab('deleted')}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Deleted Items
+                        {deletedHistory.filter(d => d.status === 'deleted').length > 0 && (
+                            <span className="badge badge-error badge-sm ml-2">
+                                {deletedHistory.filter(d => d.status === 'deleted').length}
+                            </span>
+                        )}
+                    </a>
                 </div>
 
                 {/* Overview Tab */}
                 {activeTab === 'overview' && stats && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div className="bg-gray-800 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-gray-300 mb-2">Total Users</h3>
-                            <p className="text-3xl font-bold text-blue-400">{stats.total_users}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="stat bg-base-100 rounded-lg shadow-lg">
+                            <div className="stat-figure text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <div className="stat-title">Total Users</div>
+                            <div className="stat-value text-primary">{stats.total_users}</div>
+                            <div className="stat-desc">Registered accounts</div>
                         </div>
-                        <div className="bg-gray-800 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-gray-300 mb-2">Total Buttons</h3>
-                            <p className="text-3xl font-bold text-green-400">{stats.total_buttons}</p>
+
+                        <div className="stat bg-base-100 rounded-lg shadow-lg">
+                            <div className="stat-figure text-secondary">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                </svg>
+                            </div>
+                            <div className="stat-title">Total Buttons</div>
+                            <div className="stat-value text-secondary">{stats.total_buttons}</div>
+                            <div className="stat-desc">Uploaded sounds</div>
                         </div>
-                        <div className="bg-gray-800 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-gray-300 mb-2">Deleted Items</h3>
-                            <p className="text-3xl font-bold text-red-400">{stats.total_deleted}</p>
+
+                        <div className="stat bg-base-100 rounded-lg shadow-lg">
+                            <div className="stat-figure text-accent">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div className="stat-title">Total Plays</div>
+                            <div className="stat-value text-accent">{stats.total_plays || 0}</div>
+                            <div className="stat-desc">Sound plays</div>
                         </div>
-                        <div className="bg-gray-800 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-gray-300 mb-2">Categories</h3>
-                            <p className="text-3xl font-bold text-purple-400">{stats.total_categories}</p>
+
+                        <div className="stat bg-base-100 rounded-lg shadow-lg">
+                            <div className="stat-figure text-error">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div className="stat-title">Deleted Items</div>
+                            <div className="stat-value text-error">{stats.total_deleted}</div>
+                            <div className="stat-desc">In recycle bin</div>
+                        </div>
+
+                        <div className="stat bg-base-100 rounded-lg shadow-lg">
+                            <div className="stat-figure text-info">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                            </div>
+                            <div className="stat-title">Categories</div>
+                            <div className="stat-value text-info">{stats.total_categories}</div>
+                            <div className="stat-desc">Organization tags</div>
+                        </div>
+
+                        <div className="stat bg-base-100 rounded-lg shadow-lg">
+                            <div className="stat-figure text-success">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </div>
+                            <div className="stat-title">Active Today</div>
+                            <div className="stat-value text-success">{stats.active_users_today || 0}</div>
+                            <div className="stat-desc">Users online today</div>
                         </div>
                     </div>
                 )}
 
                 {/* Users Tab */}
                 {activeTab === 'users' && (
-                    <div className="bg-gray-800 rounded-lg p-6">
-                        <h2 className="text-xl font-semibold mb-4">User Management</h2>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="border-b border-gray-700">
-                                        <th className="pb-3 text-gray-300">ID</th>
-                                        <th className="pb-3 text-gray-300">Username</th>
-                                        <th className="pb-3 text-gray-300">Button Size</th>
-                                        <th className="pb-3 text-gray-300">Button Count</th>
-                                        <th className="pb-3 text-gray-300">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map((user) => (
-                                        <tr key={user.id} className="border-b border-gray-700">
-                                            <td className="py-3">{user.id}</td>
-                                            <td className="py-3">{user.username}</td>
-                                            <td className="py-3">{user.btn_size}px</td>
-                                            <td className="py-3">{user.button_count}</td>
-                                            <td className="py-3">
-                                                <button className="text-blue-400 hover:text-blue-300 mr-3">
-                                                    View
-                                                </button>
-                                                <button className="text-red-400 hover:text-red-300">
-                                                    Suspend
-                                                </button>
-                                            </td>
+                    <div className="card bg-base-100 shadow-xl">
+                        <div className="card-body">
+                            <h2 className="card-title">User Management</h2>
+                            <div className="overflow-x-auto">
+                                <table className="table table-zebra">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Username</th>
+                                            <th>Button Size</th>
+                                            <th>Buttons</th>
+                                            <th>Actions</th>
                                         </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map((u) => (
+                                            <tr key={u.id}>
+                                                <td>{u.id}</td>
+                                                <td>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="avatar placeholder">
+                                                            <div className="bg-neutral text-neutral-content rounded-full w-8">
+                                                                <span className="text-xs">{u.username[0].toUpperCase()}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="font-bold">{u.username}</div>
+                                                    </div>
+                                                </td>
+                                                <td>{u.btn_size}px</td>
+                                                <td>
+                                                    <span className="badge badge-ghost">{u.button_count}</span>
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        className="btn btn-error btn-sm"
+                                                        onClick={() => setUserToDelete(u)}
+                                                        disabled={u.username === 'Croby'}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Categories Tab */}
+                {activeTab === 'categories' && (
+                    <div className="grid gap-6">
+                        <div className="card bg-base-100 shadow-xl">
+                            <div className="card-body">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="card-title">Category Management</h2>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => {
+                                            setCategoryToEdit(null);
+                                            setNewCategoryName('');
+                                            setNewCategoryColor('#3b82f6');
+                                            (document.getElementById('category_modal') as HTMLDialogElement)?.showModal();
+                                        }}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        New Category
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                                    {categories.map((cat) => (
+                                        <div key={cat.id} className="card bg-base-200">
+                                            <div className="card-body">
+                                                <div className="flex items-center gap-3">
+                                                    <div
+                                                        className="w-8 h-8 rounded-lg"
+                                                        style={{ backgroundColor: cat.color }}
+                                                    ></div>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold">{cat.name}</h3>
+                                                        <p className="text-sm opacity-60">
+                                                            {cat.button_count || 0} buttons
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="card-actions justify-end mt-2">
+                                                    <button
+                                                        className="btn btn-sm btn-ghost"
+                                                        onClick={() => {
+                                                            setCategoryToEdit(cat);
+                                                            setNewCategoryName(cat.name);
+                                                            setNewCategoryColor(cat.color);
+                                                            (document.getElementById('category_modal') as HTMLDialogElement)?.showModal();
+                                                        }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     ))}
-                                </tbody>
-                            </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {/* Deleted Items Tab */}
                 {activeTab === 'deleted' && (
-                    <div className="bg-gray-800 rounded-lg p-6">
-                        <h2 className="text-xl font-semibold mb-4">Deleted Items History</h2>
-                        <div className="space-y-4">
-                            {deletedHistory.length > 0 ? (
-                                deletedHistory.map((item, index) => (
-                                    <div key={index} className="bg-gray-700 rounded-lg p-4 flex justify-between items-center">
-                                        <div>
-                                            <h3 className="font-medium">{item.button_name}</h3>
-                                            <p className="text-sm text-gray-400">
-                                                Deleted: {new Date(item.delete_date).toLocaleDateString()}
-                                            </p>
-                                            <p className="text-sm text-gray-400">
-                                                Status: <span className={`font-medium ${
-                                                    item.status === 'restored' ? 'text-green-400' : 'text-red-400'
-                                                }`}>
-                                                    {item.status}
-                                                </span>
-                                            </p>
-                                            {item.image_filename && (
-                                                <p className="text-xs text-gray-500">Image: {item.image_filename}</p>
-                                            )}
-                                            {item.sound_filename && (
-                                                <p className="text-xs text-gray-500">Sound: {item.sound_filename}</p>
-                                            )}
+                    <div className="card bg-base-100 shadow-xl">
+                        <div className="card-body">
+                            <h2 className="card-title">Deleted Items - Restore Center</h2>
+                            <div className="space-y-3 mt-4">
+                                {deletedHistory.length > 0 ? (
+                                    deletedHistory.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className={`card bg-base-200 ${
+                                                item.status === 'restored' ? 'opacity-50' : ''
+                                            }`}
+                                        >
+                                            <div className="card-body p-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-lg">{item.button_name}</h3>
+                                                        <div className="text-sm opacity-60 mt-1">
+                                                            <p>Deleted: {new Date(item.delete_date).toLocaleString()}</p>
+                                                            {item.image_filename && (
+                                                                <p>Image: {item.image_filename}</p>
+                                                            )}
+                                                            {item.sound_filename && (
+                                                                <p>Sound: {item.sound_filename}</p>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-2">
+                                                            <span
+                                                                className={`badge ${
+                                                                    item.status === 'restored'
+                                                                        ? 'badge-success'
+                                                                        : 'badge-error'
+                                                                }`}
+                                                            >
+                                                                {item.status.toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    {item.status === 'deleted' && (
+                                                        <button
+                                                            onClick={() => setItemToRestore(item)}
+                                                            className="btn btn-success"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                            </svg>
+                                                            Restore
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                        {item.status === 'deleted' && (
-                                            <button
-                                                onClick={() => handleRestoreButton(index + 1)} // Note: This needs proper ID handling
-                                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-                                            >
-                                                Restore
-                                            </button>
-                                        )}
+                                    ))
+                                ) : (
+                                    <div className="text-center py-16">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-24 h-24 mx-auto mb-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        <p className="opacity-60 text-lg">No deleted items found</p>
                                     </div>
-                                ))
-                            ) : (
-                                <p className="text-gray-400 text-center py-8">No deleted items found.</p>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
+
+                {/* Restore Confirmation Modal */}
+                {itemToRestore && (
+                    <div className="modal modal-open" onClick={() => setItemToRestore(null)}>
+                        <div className="modal-box relative" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                onClick={() => setItemToRestore(null)}
+                            >
+                                ✕
+                            </button>
+                            <div className="flex justify-center mb-4">
+                                <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 className="font-bold text-xl text-center mb-2">Restore Button</h3>
+                            <p className="text-center py-4">
+                                Are you sure you want to restore<br />
+                                <strong className="text-lg">{itemToRestore.button_name}</strong>?
+                            </p>
+                            <div className="modal-action justify-center gap-3">
+                                <button className="btn btn-ghost" onClick={() => setItemToRestore(null)}>
+                                    Cancel
+                                </button>
+                                <button className="btn btn-success" onClick={handleRestoreButton}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Restore
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete User Modal */}
+                {userToDelete && (
+                    <div className="modal modal-open" onClick={() => setUserToDelete(null)}>
+                        <div className="modal-box relative" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                onClick={() => setUserToDelete(null)}
+                            >
+                                ✕
+                            </button>
+                            <div className="flex justify-center mb-4">
+                                <div className="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 className="font-bold text-xl text-center mb-2">Delete User</h3>
+                            <p className="text-center py-4">
+                                Are you sure you want to delete user<br />
+                                <strong className="text-lg">{userToDelete.username}</strong>?<br />
+                                <span className="text-warning font-semibold mt-2 block">⚠️ This action is irreversible</span>
+                            </p>
+                            <div className="modal-action justify-center gap-3">
+                                <button className="btn btn-ghost" onClick={() => setUserToDelete(null)}>
+                                    Cancel
+                                </button>
+                                <button className="btn btn-error" onClick={handleDeleteUser}>
+                                    Delete User
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Category Modal */}
+                <dialog id="category_modal" className="modal">
+                    <div className="modal-box">
+                        <h3 className="font-bold text-lg mb-4">
+                            {categoryToEdit ? 'Edit Category' : 'New Category'}
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text">Category Name</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    className="input input-bordered"
+                                    placeholder="Enter category name"
+                                />
+                            </div>
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text">Color</span>
+                                </label>
+                                <input
+                                    type="color"
+                                    value={newCategoryColor}
+                                    onChange={(e) => setNewCategoryColor(e.target.value)}
+                                    className="input input-bordered h-12"
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-action">
+                            <button
+                                className="btn btn-ghost"
+                                onClick={() => (document.getElementById('category_modal') as HTMLDialogElement)?.close()}
+                            >
+                                Cancel
+                            </button>
+                            <button className="btn btn-primary" onClick={handleSaveCategory}>
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                    <form method="dialog" className="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
             </div>
         </div>
     );
