@@ -19,15 +19,28 @@ import {
   PlayHistory,
   ButtonStats,
   DeleteHistory,
+  AuditLog,
   testConnection
 } from './models/mysql-models.js';
 
-// Import audit log
-import AuditLog from './models/AuditLog.js';
-import { logAction } from './middleware/auditLogger.js';
-
 // Import auth middleware
 import { authenticateUser, requireAdmin } from './middleware/auth.js';
+
+// Audit logging helper
+const logAction = async (userId, username, action, req, details = {}) => {
+  try {
+    await AuditLog.create({
+      userId,
+      username,
+      action,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent'),
+      details
+    });
+  } catch (error) {
+    console.error('Error logging audit action:', error);
+  }
+};
 
 // Import route modules
 import adminRoutes from './routes/admin.js';
@@ -141,7 +154,7 @@ app.post('/api/login', async (req, res) => {
 
     if (!username || !password) {
       // Log failed login attempt
-      await logAction(req, 'login_failed', { reason: 'missing_credentials', username: username || 'unknown' });
+      await logAction(null, username || 'unknown', 'login_failed', req, { reason: 'missing_credentials' });
       return res.status(400).json({ success: false, message: 'Username and password are required' });
     }
 
@@ -150,7 +163,7 @@ app.post('/api/login', async (req, res) => {
 
     if (!user) {
       // Log failed login attempt
-      await logAction(req, 'login_failed', { reason: 'invalid_username', username });
+      await logAction(null, username, 'login_failed', req, { reason: 'invalid_username' });
       return res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
 
@@ -158,7 +171,7 @@ app.post('/api/login', async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       // Log failed login attempt
-      await logAction(req, 'login_failed', { reason: 'invalid_password', username, userId: user.id });
+      await logAction(user.id, username, 'login_failed', req, { reason: 'invalid_password' });
       return res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
 
@@ -175,12 +188,12 @@ app.post('/api/login', async (req, res) => {
     req.session.save(async (err) => {
       if (err) {
         console.error('Session save error:', err);
-        await logAction(req, 'login_failed', { reason: 'session_error', username, userId: user.id });
+        await logAction(user.id, username, 'login_failed', req, { reason: 'session_error' });
         return res.status(500).json({ success: false, message: 'Session save failed' });
       }
 
       // Log successful login
-      await logAction(req, 'login_success', { username, userId: user.id, isAdmin: user.is_admin });
+      await logAction(user.id, username, 'login_success', req, { isAdmin: user.is_admin });
 
       res.json({
         success: true,
@@ -189,7 +202,7 @@ app.post('/api/login', async (req, res) => {
           id: user.id,
           username: user.username,
           btnSize: user.btn_size,
-          isAdmin: user.is_admin || false,
+          isAdmin: !!(user.is_admin),
           avatar: user.avatar || null
         }
       });
@@ -220,7 +233,7 @@ app.get('/api/me', authenticateUser, async (req, res) => {
         id: user.id,
         username: user.username,
         btnSize: user.btn_size,
-        isAdmin: user.is_admin || false,
+        isAdmin: !!(user.is_admin),
         avatar: user.avatar || null
       }
     });
@@ -568,6 +581,14 @@ app.post('/api/buttons', authenticateUser, upload.fields([
     // Create Linked entry (auto-link uploaded buttons to user)
     await Linked.createOrUpdate(req.user.id, uploaded.id, maxTri + 1);
 
+    // Log button upload
+    await logAction(req.user.id, req.user.username, 'button_upload', req, {
+      buttonId: uploaded.id,
+      button_name: ButtonName,
+      category_name: CategoryName,
+      category_id: categoryId
+    });
+
     res.status(201).json({
       success: true,
       message: 'Button uploaded and linked successfully',
@@ -700,10 +721,68 @@ app.post('/api/categories', authenticateUser, async (req, res) => {
   try {
     const { name, color } = req.body;
     const category = await Category.create({ name, color });
+
+    // Log category creation
+    await logAction(req.user.id, req.user.username, 'category_create', req, {
+      categoryId: category.id,
+      name,
+      color
+    });
+
     res.json({ success: true, category });
   } catch (error) {
     console.error('Error creating category:', error);
     res.status(500).json({ error: 'Failed to create category' });
+  }
+});
+
+app.put('/api/categories/:id', authenticateUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, color } = req.body;
+
+    if (!name || !color) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name and color are required'
+      });
+    }
+
+    const category = await Category.update(id, { name, color });
+
+    // Log category update
+    await logAction(req.user.id, req.user.username, 'category_update', req, {
+      categoryId: id,
+      name,
+      color
+    });
+
+    res.json({ success: true, category });
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({ error: 'Failed to update category' });
+  }
+});
+
+app.delete('/api/categories/:id', authenticateUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get category info before deletion for logging
+    const category = await Category.findById(id);
+
+    await Category.delete(id);
+
+    // Log category deletion
+    await logAction(req.user.id, req.user.username, 'category_delete', req, {
+      categoryId: id,
+      name: category?.name || 'Unknown'
+    });
+
+    res.json({ success: true, message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({ error: 'Failed to delete category' });
   }
 });
 
@@ -760,17 +839,17 @@ app.post('/api/upload', authenticateUser, upload.fields([
 });
 
 // Get all uploaded buttons
-app.get('/api/uploaded', async (req, res) => {
+app.get('/api/uploaded', authenticateUser, async (req, res) => {
   try {
-    const uploaded = await Uploaded.getAll();
-    
+    const uploaded = await Uploaded.getAllWithLinkedStatus(req.user.id);
+
     // Add file URLs
     const uploadedWithUrls = uploaded.map(item => ({
       ...item,
       imageUrl: item.image_filename ? `/uploads/images/${item.image_filename}` : null,
       soundUrl: item.sound_filename ? `/uploads/audio/${item.sound_filename}` : null
     }));
-    
+
     res.json({ success: true, uploaded: uploadedWithUrls });
   } catch (error) {
     console.error('Error getting uploaded buttons:', error);
@@ -825,21 +904,26 @@ app.delete('/api/link/:uploadedId', authenticateUser, async (req, res) => {
     const button = linked.find(b => b.uploaded_id === parseInt(uploadedId));
 
     if (!button) {
-      return res.status(404).json({ error: 'Button not found' });
+      return res.status(404).json({ success: false, error: 'Button not found' });
     }
 
-    // Create deleted_button entry (files stay on disk for restore)
-    await DeleteHistory.create({
-      ownerId: req.user.id,
-      uploadedId: button.uploaded_id,
-      buttonName: button.button_name,
-      soundFilename: button.sound_filename,
-      imageFilename: button.image_filename,
-      imageId: button.image_id,
-      soundId: button.sound_id,
-      categoryId: null, // Add if you track category_id
-      status: 'deleted'
-    });
+    // Try to create deleted_button entry (files stay on disk for restore)
+    try {
+      await DeleteHistory.create({
+        ownerId: req.user.id,
+        uploadedId: button.uploaded_id || parseInt(uploadedId),
+        buttonName: button.button_name || 'Unknown',
+        soundFilename: button.sound_filename || null,
+        imageFilename: button.image_filename || null,
+        imageId: button.image_id || null,
+        soundId: button.sound_id || null,
+        categoryId: button.category_id || null,
+        status: 'deleted'
+      });
+    } catch (historyError) {
+      console.error('Error creating deleted_button entry:', historyError);
+      // Continue with deletion even if history fails
+    }
 
     // Remove from linked table (unlink from user's collection)
     await Linked.delete(req.user.id, uploadedId);
@@ -847,7 +931,7 @@ app.delete('/api/link/:uploadedId', authenticateUser, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Error unlinking button:', error);
-    res.status(500).json({ error: 'Failed to unlink button' });
+    res.status(500).json({ success: false, error: 'Failed to unlink button', details: error.message });
   }
 });
 
@@ -1002,25 +1086,6 @@ app.post('/api/play/:uploadedId', authenticateUser, async (req, res) => {
   }
 });
 
-// Get user's play history
-app.get('/api/history', authenticateUser, async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 50;
-    const history = await PlayHistory.getUserHistory(req.user.id, limit);
-
-    const historyWithUrls = history.map(item => ({
-      ...item,
-      imageUrl: item.image_filename ? `/uploads/images/${item.image_filename}` : null,
-      soundUrl: item.sound_filename ? `/uploads/audio/${item.sound_filename}` : null
-    }));
-
-    res.json({ success: true, history: historyWithUrls });
-  } catch (error) {
-    console.error('Error getting history:', error);
-    res.status(500).json({ error: 'Failed to get history' });
-  }
-});
-
 // Get recently played buttons
 app.get('/api/recently-played', authenticateUser, async (req, res) => {
   try {
@@ -1037,17 +1102,6 @@ app.get('/api/recently-played', authenticateUser, async (req, res) => {
   } catch (error) {
     console.error('Error getting recently played:', error);
     res.status(500).json({ error: 'Failed to get recently played' });
-  }
-});
-
-// Clear user's play history
-app.delete('/api/history', authenticateUser, async (req, res) => {
-  try {
-    await PlayHistory.clearUserHistory(req.user.id);
-    res.json({ success: true, message: 'History cleared' });
-  } catch (error) {
-    console.error('Error clearing history:', error);
-    res.status(500).json({ error: 'Failed to clear history' });
   }
 });
 
@@ -1092,6 +1146,137 @@ app.get('/api/stats/button/:uploadedId', async (req, res) => {
   } catch (error) {
     console.error('Error getting button stats:', error);
     res.status(500).json({ error: 'Failed to get button stats' });
+  }
+});
+
+// ===== ADMIN ENDPOINTS =====
+
+// Get all buttons for admin
+app.get('/api/admin/buttons', authenticateUser, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const buttons = await Uploaded.getAll();
+
+    // Add file URLs
+    const buttonsWithUrls = buttons.map(button => ({
+      ...button,
+      imageUrl: button.image_filename ? `/uploads/images/${button.image_filename}` : null,
+      soundUrl: button.sound_filename ? `/uploads/audio/${button.sound_filename}` : null
+    }));
+
+    console.log('Admin buttons query result:', {
+      totalButtons: buttons.length,
+      firstButton: buttons[0] || 'None',
+      userIsAdmin: req.user.is_admin,
+      userId: req.user.id
+    });
+
+    res.json({ success: true, buttons: buttonsWithUrls });
+  } catch (error) {
+    console.error('Error getting admin buttons:', error);
+    res.status(500).json({ error: 'Failed to get buttons' });
+  }
+});
+
+// Update button
+app.put('/api/admin/buttons/:id', authenticateUser, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    const { button_name, category_id } = req.body;
+
+    await Uploaded.update(id, { button_name, category_id });
+
+    // Log button update
+    await logAction(req.user.id, req.user.username, 'button_update', req, {
+      buttonId: id,
+      button_name,
+      category_id
+    });
+
+    res.json({ success: true, message: 'Button updated successfully' });
+  } catch (error) {
+    console.error('Error updating button:', error);
+    res.status(500).json({ error: 'Failed to update button' });
+  }
+});
+
+// Delete button
+app.delete('/api/admin/buttons/:id', authenticateUser, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+
+    // Get button info before deletion for logging
+    const button = await Uploaded.findById(id);
+
+    await Uploaded.delete(id);
+
+    // Log button deletion
+    await logAction(req.user.id, req.user.username, 'button_delete', req, {
+      buttonId: id,
+      button_name: button?.button_name || 'Unknown'
+    });
+
+    res.json({ success: true, message: 'Button deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting button:', error);
+    res.status(500).json({ error: 'Failed to delete button' });
+  }
+});
+
+// Get all users for admin
+app.get('/api/admin/users', authenticateUser, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const users = await User.getAllWithStats();
+    res.json({ success: true, users });
+  } catch (error) {
+    console.error('Error getting admin users:', error);
+    res.status(500).json({ error: 'Failed to get users' });
+  }
+});
+
+// Get deleted buttons history
+app.get('/api/admin/deleted-buttons', authenticateUser, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const deleted = await DeleteHistory.getAll();
+    res.json({ success: true, buttons: deleted });
+  } catch (error) {
+    console.error('Error getting deleted history:', error);
+    res.status(500).json({ error: 'Failed to get deleted history' });
+  }
+});
+
+// Get audit logs
+app.get('/api/admin/audit-logs', authenticateUser, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const limit = parseInt(req.query.limit) || 50;
+    const auditLogs = await AuditLog.getAll(limit);
+    res.json({ success: true, logs: auditLogs });
+  } catch (error) {
+    console.error('Error getting audit logs:', error);
+    res.status(500).json({ error: 'Failed to get audit logs' });
   }
 });
 

@@ -14,7 +14,6 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as HomeRouteImport } from './routes/home'
-import { Route as HistoryRouteImport } from './routes/history'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ButtonsRouteImport } from './routes/Buttons'
@@ -45,11 +44,6 @@ const HomeRoute = HomeRouteImport.update({
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HistoryRoute = HistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const FavoritesRoute = FavoritesRouteImport.update({
   id: '/favorites',
   path: '/favorites',
@@ -76,7 +70,6 @@ export interface FileRoutesByFullPath {
   '/Buttons': typeof ButtonsRoute
   '/admin': typeof AdminRoute
   '/favorites': typeof FavoritesRoute
-  '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -88,7 +81,6 @@ export interface FileRoutesByTo {
   '/Buttons': typeof ButtonsRoute
   '/admin': typeof AdminRoute
   '/favorites': typeof FavoritesRoute
-  '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -101,7 +93,6 @@ export interface FileRoutesById {
   '/Buttons': typeof ButtonsRoute
   '/admin': typeof AdminRoute
   '/favorites': typeof FavoritesRoute
-  '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -115,7 +106,6 @@ export interface FileRouteTypes {
     | '/Buttons'
     | '/admin'
     | '/favorites'
-    | '/history'
     | '/home'
     | '/profile'
     | '/register'
@@ -127,7 +117,6 @@ export interface FileRouteTypes {
     | '/Buttons'
     | '/admin'
     | '/favorites'
-    | '/history'
     | '/home'
     | '/profile'
     | '/register'
@@ -139,7 +128,6 @@ export interface FileRouteTypes {
     | '/Buttons'
     | '/admin'
     | '/favorites'
-    | '/history'
     | '/home'
     | '/profile'
     | '/register'
@@ -152,7 +140,6 @@ export interface RootRouteChildren {
   ButtonsRoute: typeof ButtonsRoute
   AdminRoute: typeof AdminRoute
   FavoritesRoute: typeof FavoritesRoute
-  HistoryRoute: typeof HistoryRoute
   HomeRoute: typeof HomeRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
@@ -197,13 +184,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/favorites': {
       id: '/favorites'
       path: '/favorites'
@@ -240,7 +220,6 @@ const rootRouteChildren: RootRouteChildren = {
   ButtonsRoute: ButtonsRoute,
   AdminRoute: AdminRoute,
   FavoritesRoute: FavoritesRoute,
-  HistoryRoute: HistoryRoute,
   HomeRoute: HomeRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,

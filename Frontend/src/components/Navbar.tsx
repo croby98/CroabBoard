@@ -21,7 +21,6 @@ export const Navbar: React.FC = () => {
         { name: 'Home', href: '/home', current: false, icon: '🏠' },
         { name: 'Buttons', href: '/buttons', current: false, icon: '🎵' },
         { name: 'Favorites', href: '/favorites', current: false, icon: '❤️' },
-        { name: 'History', href: '/history', current: false, icon: '🕐' },
         { name: 'Statistics', href: '/statistics', current: false, icon: '📊' },
     ]);
 

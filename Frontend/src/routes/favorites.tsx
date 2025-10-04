@@ -61,16 +61,30 @@ function FavoritesPage() {
                 <audio ref={audioRef} />
 
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-10 h-10 mr-3 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                        </svg>
-                        My Favorites
-                    </h1>
-                    <p className="text-base-content/70">
-                        {favorites.length} favorite sound{favorites.length !== 1 ? 's' : ''}
-                    </p>
+                <div className="hero bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-3xl mb-8">
+                    <div className="hero-content text-center">
+                        <div className="max-w-md">
+                            <div className="text-6xl mb-4">❤️</div>
+                            <h1 className="text-5xl font-bold bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
+                                My Favorites
+                            </h1>
+                            <p className="py-6 text-lg">
+                                {favorites.length} favorite sound{favorites.length !== 1 ? 's' : ''} ready to play
+                            </p>
+                            <div className="stats shadow">
+                                <div className="stat">
+                                    <div className="stat-figure text-red-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-8 h-8 stroke-current">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <div className="stat-title">Total Favorites</div>
+                                    <div className="stat-value text-red-500">{favorites.length}</div>
+                                    <div className="stat-desc">Sounds you love</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Favorites Grid */}
@@ -88,21 +102,21 @@ function FavoritesPage() {
                         </a>
                     </div>
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {favorites.map((favorite) => (
                         <div
                             key={favorite.id}
-                            className="card bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group"
+                            className="card bg-base-100 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group border-2 border-transparent hover:border-red-200"
                             style={{
                                 borderLeft: favorite.category_color
-                                    ? `4px solid ${favorite.category_color}`
-                                    : undefined,
+                                    ? `6px solid ${favorite.category_color}`
+                                    : '6px solid #ef4444',
                             }}
                         >
                             <div className="card-body p-3">
                                 {/* Image */}
                                 <div
-                                    className="aspect-square rounded-lg overflow-hidden mb-2 relative"
+                                    className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg"
                                     onClick={() => handlePlay(favorite.soundUrl, favorite.id)}
                                 >
                                     <img
@@ -111,50 +125,67 @@ function FavoritesPage() {
                                             : `http://localhost:5000${favorite.imageUrl}`
                                         }
                                         alt={favorite.button_name}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                     />
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                            fill="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path d="M8 5v14l11-7z" />
-                                        </svg>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-16 h-16 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-50 group-hover:scale-100">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="w-8 h-8 text-white ml-1"
+                                                fill="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path d="M8 5v14l11-7z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-2 right-2">
+                                        <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                                            <span className="text-white text-xs">❤️</span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Name */}
-                                <h3 className="font-medium text-sm truncate" title={favorite.button_name}>
+                                <h3 className="font-bold text-base text-center mb-2" title={favorite.button_name}>
                                     {favorite.button_name}
                                 </h3>
 
                                 {/* Category */}
                                 {favorite.category_name && (
-                                    <p className="text-xs text-base-content/60 truncate">
-                                        {favorite.category_name}
-                                    </p>
+                                    <div className="flex justify-center mb-2">
+                                        <span
+                                            className="badge badge-sm text-white font-medium"
+                                            style={{ backgroundColor: favorite.category_color || '#ef4444' }}
+                                        >
+                                            {favorite.category_name}
+                                        </span>
+                                    </div>
                                 )}
 
                                 {/* Remove Button */}
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        openRemoveModal(favorite.id, favorite.button_name);
-                                    }}
-                                    className="btn btn-sm btn-ghost btn-circle absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="Remove from favorites"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-5 h-5 text-red-500"
-                                        fill="currentColor"
-                                        viewBox="0 0 24 24"
+                                <div className="text-center">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openRemoveModal(favorite.id, favorite.button_name);
+                                        }}
+                                        className="btn btn-sm btn-outline btn-error hover:btn-error opacity-60 hover:opacity-100 transition-all duration-200"
+                                        title="Remove from favorites"
                                     >
-                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                    </svg>
-                                </button>
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Remove
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}

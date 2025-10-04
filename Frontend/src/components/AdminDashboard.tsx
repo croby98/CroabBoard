@@ -27,6 +27,20 @@ interface Category {
     button_count?: number;
 }
 
+interface AdminButton {
+    id: number;
+    button_name: string;
+    image_filename: string;
+    sound_filename?: string;
+    imageUrl?: string;
+    soundUrl?: string;
+    category_name?: string;
+    category_color?: string;
+    uploaded_by_username?: string;
+    upload_date?: string;
+    category_id?: number;
+}
+
 interface SystemStats {
     total_users: number;
     total_buttons: number;
@@ -39,14 +53,15 @@ interface SystemStats {
 const AdminDashboard: React.FC = () => {
     const { user } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
-    const [deletedHistory, setDeletedHistory] = useState<DeletedButton[]>([]);
+    const [deletedButtons, setDeletedButtons] = useState<DeletedButton[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [stats, setStats] = useState<SystemStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'categories' | 'deleted' | 'audit'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'buttons' | 'categories' | 'deleted' | 'audit'>('overview');
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
+    const [allButtons, setAllButtons] = useState<AdminButton[]>([]);
 
     // Modal states
     const [itemToRestore, setItemToRestore] = useState<DeletedButton | null>(null);
@@ -54,6 +69,9 @@ const AdminDashboard: React.FC = () => {
     const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newCategoryColor, setNewCategoryColor] = useState('#3b82f6');
+    const [buttonToEdit, setButtonToEdit] = useState<AdminButton | null>(null);
+    const [editButtonName, setEditButtonName] = useState('');
+    const [editButtonCategory, setEditButtonCategory] = useState('');
 
     const { isAdmin } = useAuth();
 
@@ -108,7 +126,7 @@ const AdminDashboard: React.FC = () => {
             if (deletedResponse.ok) {
                 const deletedData = await deletedResponse.json();
                 if (deletedData.success) {
-                    setDeletedHistory(deletedData.buttons || []);
+                    setDeletedButtons(deletedData.buttons || []);
                 }
             }
 
@@ -121,6 +139,40 @@ const AdminDashboard: React.FC = () => {
                 if (catData.success) {
                     setCategories(catData.categories || []);
                 }
+            }
+
+            // Fetch all buttons
+            console.log('Fetching buttons as admin user:', user);
+            console.log('User is admin check:', user?.isAdmin);
+            try {
+                const buttonsResponse = await fetch('http://localhost:5000/api/admin/buttons', {
+                    credentials: 'include',
+                });
+                console.log('Buttons response status:', buttonsResponse.status);
+                console.log('Buttons response headers:', Object.fromEntries(buttonsResponse.headers.entries()));
+
+                if (buttonsResponse.ok) {
+                    const buttonsData = await buttonsResponse.json();
+                    console.log('Buttons data received:', buttonsData);
+                    console.log('Buttons success flag:', buttonsData.success);
+                    console.log('Buttons array length:', buttonsData.buttons?.length);
+                    console.log('First button (if any):', buttonsData.buttons?.[0]);
+
+                    if (buttonsData.success) {
+                        console.log('Setting buttons count:', buttonsData.buttons?.length || 0);
+                        setAllButtons(buttonsData.buttons || []);
+                    } else {
+                        console.error('Buttons API returned error:', buttonsData);
+                        setErrorMessage(`Failed to load buttons: ${buttonsData.error || 'Unknown error'}`);
+                    }
+                } else {
+                    const errorText = await buttonsResponse.text();
+                    console.error('Buttons response not ok:', buttonsResponse.status, buttonsResponse.statusText, errorText);
+                    setErrorMessage(`Failed to load buttons: ${buttonsResponse.status} ${buttonsResponse.statusText}`);
+                }
+            } catch (error) {
+                console.error('Buttons fetch error:', error);
+                setErrorMessage(`Network error loading buttons: ${error.message}`);
             }
 
             // Fetch audit logs
@@ -273,6 +325,73 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleEditButton = (button: any) => {
+        setButtonToEdit(button);
+        setEditButtonName(button.button_name);
+        setEditButtonCategory(button.category_id || '');
+        (document.getElementById('button_edit_modal') as HTMLDialogElement)?.showModal();
+    };
+
+    const handleSaveButton = async () => {
+        if (!editButtonName.trim()) {
+            setErrorMessage('Button name is required');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/admin/buttons/${buttonToEdit.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    button_name: editButtonName,
+                    category_id: editButtonCategory || null,
+                }),
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSuccessMessage('Button updated successfully');
+                fetchDashboardData();
+                setTimeout(() => setSuccessMessage(''), 3000);
+                (document.getElementById('button_edit_modal') as HTMLDialogElement)?.close();
+                setButtonToEdit(null);
+                setEditButtonName('');
+                setEditButtonCategory('');
+            } else {
+                setErrorMessage(data.message || 'Failed to update button');
+            }
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Failed to update button');
+        }
+    };
+
+    const handleDeleteButton = async (buttonId: number) => {
+        if (!confirm('Are you sure you want to delete this button? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/admin/buttons/${buttonId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSuccessMessage('Button deleted successfully');
+                fetchDashboardData();
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                setErrorMessage(data.message || 'Failed to delete button');
+            }
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Failed to delete button');
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-screen bg-base-200">
@@ -333,6 +452,15 @@ const AdminDashboard: React.FC = () => {
                         Users
                     </a>
                     <a
+                        className={`tab tab-lg ${activeTab === 'buttons' ? 'tab-active' : ''}`}
+                        onClick={() => setActiveTab('buttons')}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                        </svg>
+                        Buttons
+                    </a>
+                    <a
                         className={`tab tab-lg ${activeTab === 'categories' ? 'tab-active' : ''}`}
                         onClick={() => setActiveTab('categories')}
                     >
@@ -349,9 +477,9 @@ const AdminDashboard: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                         Deleted Items
-                        {deletedHistory.filter(d => d.status === 'deleted').length > 0 && (
+                        {deletedButtons.filter(d => d.status === 'deleted').length > 0 && (
                             <span className="badge badge-error badge-sm ml-2">
-                                {deletedHistory.filter(d => d.status === 'deleted').length}
+                                {deletedButtons.filter(d => d.status === 'deleted').length}
                             </span>
                         )}
                     </a>
@@ -589,8 +717,8 @@ const AdminDashboard: React.FC = () => {
                         <div className="card-body">
                             <h2 className="card-title">Deleted Items - Restore Center</h2>
                             <div className="space-y-3 mt-4">
-                                {deletedHistory.length > 0 ? (
-                                    deletedHistory.map((item) => (
+                                {deletedButtons.length > 0 ? (
+                                    deletedButtons.map((item) => (
                                         <div
                                             key={item.id}
                                             className={`card bg-base-200 ${
@@ -726,6 +854,95 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 )}
 
+                {/* Buttons Tab */}
+                {activeTab === 'buttons' && (
+                    <div className="card bg-base-100 shadow-xl">
+                        <div className="card-body">
+                            <h2 className="card-title">Button Management ({allButtons.length} buttons)</h2>
+                            <div className="overflow-x-auto">
+                                <table className="table table-zebra">
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Button Name</th>
+                                            <th>Category</th>
+                                            <th>Uploaded By</th>
+                                            <th>Upload Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {loading ? (
+                                            <tr>
+                                                <td colSpan={6} className="text-center">
+                                                    <span className="loading loading-spinner loading-sm"></span> Loading buttons...
+                                                </td>
+                                            </tr>
+                                        ) : allButtons.length > 0 ? (
+                                            allButtons.map((button) => (
+                                                <tr key={button.id}>
+                                                    <td>
+                                                        <div className="avatar">
+                                                            <div className="w-12 h-12 rounded">
+                                                                <img
+                                                                    src={button.imageUrl ? `http://localhost:5000${button.imageUrl}` : `http://localhost:5000/uploads/images/${button.image_filename}`}
+                                                                    alt={button.button_name}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="font-bold">{button.button_name}</div>
+                                                    </td>
+                                                    <td>
+                                                        {button.category_name ? (
+                                                            <span
+                                                                className="badge badge-sm"
+                                                                style={{
+                                                                    backgroundColor: button.category_color,
+                                                                    color: 'white'
+                                                                }}
+                                                            >
+                                                                {button.category_name}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-500">No category</span>
+                                                        )}
+                                                    </td>
+                                                    <td>{button.uploaded_by_username}</td>
+                                                    <td>{new Date(button.upload_date || button.created_at).toLocaleDateString()}</td>
+                                                    <td>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                className="btn btn-sm btn-primary"
+                                                                onClick={() => handleEditButton(button)}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                className="btn btn-sm btn-error"
+                                                                onClick={() => handleDeleteButton(button.id)}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={6} className="text-center text-gray-500">
+                                                    No buttons found (Debug: allButtons.length = {allButtons.length})
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Restore Confirmation Modal */}
                 {itemToRestore && (
                     <div className="modal modal-open" onClick={() => setItemToRestore(null)}>
@@ -837,6 +1054,58 @@ const AdminDashboard: React.FC = () => {
                                 Cancel
                             </button>
                             <button className="btn btn-primary" onClick={handleSaveCategory}>
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                    <form method="dialog" className="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
+
+                {/* Button Edit Modal */}
+                <dialog id="button_edit_modal" className="modal">
+                    <div className="modal-box">
+                        <h3 className="font-bold text-lg mb-4">Edit Button</h3>
+                        <div className="space-y-4">
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text">Button Name</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editButtonName}
+                                    onChange={(e) => setEditButtonName(e.target.value)}
+                                    className="input input-bordered"
+                                    placeholder="Enter button name"
+                                />
+                            </div>
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text">Category</span>
+                                </label>
+                                <select
+                                    value={editButtonCategory}
+                                    onChange={(e) => setEditButtonCategory(e.target.value)}
+                                    className="select select-bordered"
+                                >
+                                    <option value="">No category</option>
+                                    {categories.map((cat) => (
+                                        <option key={cat.id} value={cat.id}>
+                                            {cat.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="modal-action">
+                            <button
+                                className="btn btn-ghost"
+                                onClick={() => (document.getElementById('button_edit_modal') as HTMLDialogElement)?.close()}
+                            >
+                                Cancel
+                            </button>
+                            <button className="btn btn-primary" onClick={handleSaveButton}>
                                 Save
                             </button>
                         </div>

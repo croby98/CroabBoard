@@ -72,29 +72,31 @@ function StatisticsPage() {
                 <audio ref={audioRef} />
 
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div>
-                        <h1 className="text-4xl font-bold mb-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-10 h-10 mr-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            Statistics
-                        </h1>
-                        <p className="text-base-content/70">Most popular sounds</p>
+                <div className="hero bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-3xl mb-8">
+                    <div className="hero-content text-center">
+                        <div className="max-w-2xl">
+                            <div className="text-6xl mb-4">📊</div>
+                            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">
+                                Statistics
+                            </h1>
+                            <p className="py-6 text-lg">
+                                Discover your most played sounds and listening patterns
+                            </p>
+                            <div className="flex justify-center gap-4">
+                                <select
+                                    value={limit}
+                                    onChange={(e) => setLimit(Number(e.target.value))}
+                                    className="select select-bordered select-lg bg-white/50 backdrop-blur-sm"
+                                >
+                                    <option value={10}>🏆 Top 10</option>
+                                    <option value={20}>🎯 Top 20</option>
+                                    <option value={50}>🚀 Top 50</option>
+                                    <option value={100}>💎 Top 100</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-
-                {/* Limit Selector */}
-                <select
-                    value={limit}
-                    onChange={(e) => setLimit(Number(e.target.value))}
-                    className="select select-bordered"
-                >
-                    <option value={10}>Top 10</option>
-                    <option value={20}>Top 20</option>
-                    <option value={50}>Top 50</option>
-                    <option value={100}>Top 100</option>
-                </select>
-            </div>
+                </div>
 
             {loading ? (
                 <div className="flex items-center justify-center py-16">
@@ -109,43 +111,49 @@ function StatisticsPage() {
                         <p className="text-base-content/70">Statistics will appear once sounds are played</p>
                     </div>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {mostPlayed.map((button, index) => (
                         <div
                             key={button.id}
-                            className="card bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer"
+                            className="card bg-base-100 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-purple-200"
                             onClick={() => handlePlay(button.soundUrl)}
                             style={{
                                 borderLeft: button.category_color
-                                    ? `4px solid ${button.category_color}`
-                                    : undefined,
+                                    ? `6px solid ${button.category_color}`
+                                    : '6px solid #8b5cf6',
                             }}
                         >
                             <div className="card-body p-4 flex-row items-center gap-4">
                                 {/* Rank */}
-                                <div className="flex-shrink-0 w-12 text-center">
+                                <div className="flex-shrink-0 w-16 text-center">
                                     {index < 3 ? (
-                                        <div className="text-3xl font-bold">
-                                            {index === 0 && '🥇'}
-                                            {index === 1 && '🥈'}
-                                            {index === 2 && '🥉'}
+                                        <div className="relative">
+                                            <div className="text-4xl mb-1">
+                                                {index === 0 && '🥇'}
+                                                {index === 1 && '🥈'}
+                                                {index === 2 && '🥉'}
+                                            </div>
+                                            <div className="text-xs font-bold text-accent">
+                                                #{index + 1}
+                                            </div>
                                         </div>
                                     ) : (
-                                        <div className="text-2xl font-bold text-base-content/50">
-                                            #{index + 1}
+                                        <div className="w-12 h-12 mx-auto bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                            {index + 1}
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Image */}
                                 <div className="avatar">
-                                    <div className="w-20 h-20 rounded-lg">
+                                    <div className="w-24 h-24 rounded-xl shadow-lg ring-2 ring-purple-200 ring-offset-2">
                                         <img
                                             src={button.imageUrl?.startsWith('http')
                                                 ? button.imageUrl
                                                 : `http://localhost:5000${button.imageUrl}`
                                             }
                                             alt={button.button_name}
+                                            className="object-cover w-full h-full rounded-xl"
                                         />
                                     </div>
                                 </div>
@@ -165,13 +173,15 @@ function StatisticsPage() {
 
                                 {/* Play Count */}
                                 <div className="text-right">
-                                    <div className="text-3xl font-bold text-primary">{button.play_count}</div>
-                                    <div className="text-sm text-base-content/70">plays</div>
+                                    <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-2xl px-4 py-2 shadow-lg">
+                                        <div className="text-3xl font-bold">{button.play_count.toLocaleString()}</div>
+                                        <div className="text-sm opacity-90">plays</div>
+                                    </div>
                                 </div>
 
                                 {/* Play Button */}
-                                <button className="btn btn-circle btn-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <button className="btn btn-circle btn-lg bg-gradient-to-r from-purple-500 to-blue-500 border-none hover:from-purple-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M8 5v14l11-7z" />
                                     </svg>
                                 </button>
@@ -183,27 +193,41 @@ function StatisticsPage() {
 
                 {/* Summary Stats */}
                 {mostPlayed.length > 0 && (
-                    <div className="stats stats-vertical lg:stats-horizontal shadow mt-8 w-full">
-                        <div className="stat">
-                            <div className="stat-title">Total Plays</div>
-                            <div className="stat-value text-primary">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                        <div className="stat bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-2xl shadow-xl p-6">
+                            <div className="stat-figure text-white/70">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div className="stat-title text-white/80">Total Plays</div>
+                            <div className="stat-value text-white text-4xl">
                                 {mostPlayed.reduce((sum, b) => sum + b.play_count, 0).toLocaleString()}
                             </div>
-                            <div className="stat-desc">For {mostPlayed.length} sounds shown</div>
+                            <div className="stat-desc text-white/70">For {mostPlayed.length} sounds shown</div>
                         </div>
 
-                        <div className="stat">
-                            <div className="stat-title">Most Popular Sound</div>
-                            <div className="stat-value text-secondary">{mostPlayed[0].play_count}</div>
-                            <div className="stat-desc">{mostPlayed[0].button_name}</div>
-                        </div>
-
-                        <div className="stat">
-                            <div className="stat-title">Average Plays</div>
-                            <div className="stat-value text-accent">
-                                {Math.round(mostPlayed.reduce((sum, b) => sum + b.play_count, 0) / mostPlayed.length)}
+                        <div className="stat bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-2xl shadow-xl p-6">
+                            <div className="stat-figure text-white/70">
+                                <div className="text-3xl">🏆</div>
                             </div>
-                            <div className="stat-desc">Per sound</div>
+                            <div className="stat-title text-white/80">Most Popular</div>
+                            <div className="stat-value text-white text-4xl">{mostPlayed[0].play_count.toLocaleString()}</div>
+                            <div className="stat-desc text-white/70 truncate">{mostPlayed[0].button_name}</div>
+                        </div>
+
+                        <div className="stat bg-gradient-to-br from-green-500 to-teal-500 text-white rounded-2xl shadow-xl p-6">
+                            <div className="stat-figure text-white/70">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                            </div>
+                            <div className="stat-title text-white/80">Average Plays</div>
+                            <div className="stat-value text-white text-4xl">
+                                {Math.round(mostPlayed.reduce((sum, b) => sum + b.play_count, 0) / mostPlayed.length).toLocaleString()}
+                            </div>
+                            <div className="stat-desc text-white/70">Per sound</div>
                         </div>
                     </div>
                 )}

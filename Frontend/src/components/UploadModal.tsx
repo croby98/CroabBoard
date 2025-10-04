@@ -21,6 +21,8 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
     const [errorMessage, setErrorMessage] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const dropRef = useRef<HTMLDivElement | null>(null);
+    const imageInputRef = useRef<HTMLInputElement | null>(null);
+    const audioInputRef = useRef<HTMLInputElement | null>(null);
 
     // Fetch categories when modal opens
     useEffect(() => {
@@ -113,7 +115,8 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                 // Optionally refresh the page or emit an event to refresh button lists
                 window.location.reload();
             } else {
-                setErrorMessage(data.message || 'Upload failed');
+                console.error('Upload failed:', data);
+                setErrorMessage(data.message || `Upload failed: ${response.status} ${response.statusText}`);
             }
         } catch (error: any) {
             setErrorMessage(error.message || 'Upload failed');
@@ -127,7 +130,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
             setImageFile(null);
             setAudioFile(null);
             setButtonName('');
-            setCategoryName('');
+            setCategoryId(null);
             setErrorMessage('');
             closeModal();
         }
@@ -315,18 +318,41 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                         <label className="label">
                             <span className="label-text">Image *</span>
                         </label>
-                        <input
-                            type="file"
-                            onChange={(e) => {
-                                if (e.target.files) {
-                                    assignFilesFromList(e.target.files);
-                                }
-                            }}
-                            className="file-input file-input-bordered w-full"
-                            accept="image/*"
-                            required
-                            disabled={isUploading}
-                        />
+                        {imageFile ? (
+                            <div className="flex items-center gap-2 p-3 border-2 border-success bg-success/10 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="flex-1 text-success font-medium">{imageFile.name}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setImageFile(null);
+                                        if (imageInputRef.current) {
+                                            imageInputRef.current.value = '';
+                                        }
+                                    }}
+                                    className="btn btn-sm btn-circle btn-ghost text-error"
+                                    disabled={isUploading}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : (
+                            <input
+                                ref={imageInputRef}
+                                type="file"
+                                onChange={(e) => {
+                                    if (e.target.files) {
+                                        assignFilesFromList(e.target.files);
+                                    }
+                                }}
+                                className="file-input file-input-bordered w-full"
+                                accept="image/*"
+                                required
+                                disabled={isUploading}
+                            />
+                        )}
                     </div>
 
                     {/* Audio Upload */}
@@ -334,33 +360,41 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                         <label className="label">
                             <span className="label-text">Audio *</span>
                         </label>
-                        <input
-                            type="file"
-                            onChange={(e) => {
-                                if (e.target.files) {
-                                    assignFilesFromList(e.target.files);
-                                }
-                            }}
-                            className="file-input file-input-bordered w-full"
-                            accept="audio/*"
-                            required
-                            disabled={isUploading}
-                        />
-                    </div>
-
-                    {/* Category */}
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text">Category (optional)</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={categoryName}
-                            onChange={(e) => setCategoryName(e.target.value)}
-                            className="input input-bordered w-full"
-                            placeholder="Category name"
-                            disabled={isUploading}
-                        />
+                        {audioFile ? (
+                            <div className="flex items-center gap-2 p-3 border-2 border-info bg-info/10 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="flex-1 text-info font-medium">{audioFile.name}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setAudioFile(null);
+                                        if (audioInputRef.current) {
+                                            audioInputRef.current.value = '';
+                                        }
+                                    }}
+                                    className="btn btn-sm btn-circle btn-ghost text-error"
+                                    disabled={isUploading}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : (
+                            <input
+                                ref={audioInputRef}
+                                type="file"
+                                onChange={(e) => {
+                                    if (e.target.files) {
+                                        assignFilesFromList(e.target.files);
+                                    }
+                                }}
+                                className="file-input file-input-bordered w-full"
+                                accept="audio/*"
+                                required
+                                disabled={isUploading}
+                            />
+                        )}
                     </div>
 
                     {/* Action Buttons */}

@@ -9,6 +9,7 @@ interface Button {
     sound_filename: string;
     category?: string;
     category_color?: string;
+    is_linked?: number;
 }
 
 const apiUrlImagesFiles = "http://localhost:5000/uploads/images/";
@@ -40,9 +41,16 @@ const Buttons: React.FC = () => {
                     image_filename: button.image_filename,
                     sound_filename: button.sound_filename,
                     category: button.category_name,
-                    category_color: button.category_color || '#3B82F6'
+                    category_color: button.category_color || '#3B82F6',
+                    is_linked: button.is_linked
                 }));
                 setButtons(transformedButtons);
+
+                // Auto-check linked buttons
+                const linkedIds = transformedButtons
+                    .filter((button: Button) => button.is_linked)
+                    .map((button: Button) => button.id);
+                setCheckedIds(linkedIds);
             } else {
                 setErrorMessage(data.message || "Failed to load buttons");
             }
@@ -60,45 +68,79 @@ const Buttons: React.FC = () => {
         }
     };
 
-    const handleCheckboxChange = (id: number) => {
-        setCheckedIds(prev =>
-            prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
-        );
-    };
+    const handleCheckboxChange = async (id: number) => {
+        const button = buttons.find(b => b.id === id);
+        if (!button) return;
 
-    const handleSelectAll = () => {
-        if (checkedIds.length === buttons.length) {
-            setCheckedIds([]);
-        } else {
-            setCheckedIds(buttons.map(b => b.id));
-        }
-    };
+        const isCurrentlyChecked = checkedIds.includes(id);
 
-    const handleLinkSelected = async () => {
-        if (checkedIds.length === 0) {
-            setErrorMessage("No buttons selected");
-            return;
-        }
-
-        setLoading(true);
         try {
-            const promises = checkedIds.map(uploadedId =>
-                fetch("http://localhost:5000/api/link", {
+            if (isCurrentlyChecked) {
+                // Unlink the button
+                await fetch(`http://localhost:5000/api/link/${id}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+                setCheckedIds(prev => prev.filter(cid => cid !== id));
+                setSuccessMessage("Button unlinked successfully");
+            } else {
+                // Link the button
+                await fetch("http://localhost:5000/api/link", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({ uploaded_id: uploadedId })
-                })
-            );
+                    body: JSON.stringify({ uploadedId: id })
+                });
+                setCheckedIds(prev => [...prev, id]);
+                setSuccessMessage("Button linked successfully");
+            }
 
-            await Promise.all(promises);
-            setSuccessMessage(`${checkedIds.length} button(s) linked successfully`);
-            setCheckedIds([]);
-            setTimeout(() => setSuccessMessage(""), 3000);
+            // Refresh the buttons list to update linked status
+            fetchButtons();
+            setTimeout(() => setSuccessMessage(""), 2000);
         } catch (error: any) {
-            setErrorMessage(error.message || "Failed to link buttons");
-        } finally {
-            setLoading(false);
+            setErrorMessage(error.message || "Failed to update button");
+            setTimeout(() => setErrorMessage(""), 3000);
+        }
+    };
+
+    const handleSelectAll = async () => {
+        const allLinked = buttons.every(b => b.is_linked);
+        const allUnlinked = buttons.every(b => !b.is_linked);
+
+        try {
+            if (allLinked) {
+                // Unlink all buttons
+                const promises = buttons.map(button =>
+                    fetch(`http://localhost:5000/api/link/${button.id}`, {
+                        method: "DELETE",
+                        credentials: "include",
+                    })
+                );
+                await Promise.all(promises);
+                setCheckedIds([]);
+                setSuccessMessage("All buttons unlinked");
+            } else {
+                // Link all unlinked buttons
+                const unlinkedButtons = buttons.filter(b => !b.is_linked);
+                const promises = unlinkedButtons.map(button =>
+                    fetch("http://localhost:5000/api/link", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ uploadedId: button.id })
+                    })
+                );
+                await Promise.all(promises);
+                setCheckedIds(buttons.map(b => b.id));
+                setSuccessMessage("All buttons linked");
+            }
+
+            fetchButtons(); // Refresh to show updated linked status
+            setTimeout(() => setSuccessMessage(""), 2000);
+        } catch (error: any) {
+            setErrorMessage(error.message || "Failed to update buttons");
+            setTimeout(() => setErrorMessage(""), 3000);
         }
     };
 
@@ -145,36 +187,22 @@ const Buttons: React.FC = () => {
 
                 <div className="card bg-base-100 shadow-xl mb-6">
                     <div className="card-body">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-center items-center">
                             <div className="form-control">
                                 <label className="label cursor-pointer gap-3">
                                     <input
                                         type="checkbox"
                                         className="checkbox checkbox-primary"
-                                        checked={buttons.length > 0 && checkedIds.length === buttons.length}
+                                        checked={buttons.length > 0 && buttons.every(b => b.is_linked)}
                                         onChange={handleSelectAll}
                                     />
                                     <span className="label-text font-medium">
-                                        {checkedIds.length === buttons.length && buttons.length > 0
-                                            ? "Deselect All"
-                                            : "Select All"}
+                                        {buttons.every(b => b.is_linked) && buttons.length > 0
+                                            ? "Unlink All"
+                                            : "Link All"}
                                     </span>
                                 </label>
                             </div>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleLinkSelected}
-                                disabled={checkedIds.length === 0 || loading}
-                            >
-                                {loading ? (
-                                    <span className="loading loading-spinner loading-sm"></span>
-                                ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                )}
-                                Add Selected to Collection
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -184,9 +212,9 @@ const Buttons: React.FC = () => {
                         {buttons.map((button) => (
                             <div
                                 key={button.id}
-                                className={`card bg-base-100 shadow-lg hover:shadow-xl transition-all ${
+                                className={`card bg-base-100 shadow-lg hover:shadow-xl transition-all relative ${
                                     checkedIds.includes(button.id) ? 'ring-2 ring-primary' : ''
-                                }`}
+                                } ${button.is_linked ? 'opacity-75' : ''}`}
                             >
                                 <figure className="px-3 pt-3 relative">
                                     <img
@@ -203,6 +231,13 @@ const Buttons: React.FC = () => {
                                             onChange={() => handleCheckboxChange(button.id)}
                                         />
                                     </div>
+                                    {button.is_linked && (
+                                        <div className="absolute top-4 left-4">
+                                            <div className="badge badge-success badge-sm">
+                                                ✓ Linked
+                                            </div>
+                                        </div>
+                                    )}
                                 </figure>
                                 <div className="card-body p-3">
                                     <h3 className="card-title text-sm truncate">{button.button_name}</h3>
