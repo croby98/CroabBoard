@@ -53,16 +53,17 @@ const HomeButtons: React.FC = () => {
             if (response.ok && data.success) {
                 
                 // Transform the data to match the expected format
-                const transformedButtons = data.linked.map((button: any) => ({
+                const transformedButtons = data.linked.map((button: any, index: number) => ({
                     image_id: button.image_id,
                     uploaded_id: button.uploaded_id,
                     button_name: button.button_name || 'Untitled',
                     image_filename: button.image_filename,
                     sound_filename: button.sound_filename,
-                    category_color: button.category_color || '#3B82F6'
+                    category_color: button.category_color || '#3B82F6',
+                    tri: button.tri // Keep track of the original tri value
                 }));
-                
-                
+
+                console.log('📥 Loaded buttons in order (by tri):', transformedButtons.map(b => ({ name: b.button_name, tri: b.tri, uploaded_id: b.uploaded_id })));
                 setButtons(transformedButtons);
 
                 // Get user button size from /api/me endpoint
@@ -290,6 +291,7 @@ const HomeButtons: React.FC = () => {
             new_position: idx
         }));
 
+        console.log('🔄 Updating button order:', positions);
 
         try {
             const response = await fetch('http://localhost:5000/api/linked', {
@@ -298,15 +300,17 @@ const HomeButtons: React.FC = () => {
                 credentials: 'include',
                 body: JSON.stringify({ positions }),
             });
-            
+
             const result = await response.json();
-            console.log('Reorder response:', result);
-            
+            console.log('✅ Reorder response:', result);
+
             if (!response.ok) {
                 throw new Error(result.message || 'Failed to save order');
+            } else {
+                console.log('✅ Button order successfully saved to database');
             }
         } catch (e: any) {
-            console.error('Failed to update button order:', e);
+            console.error('❌ Failed to update button order:', e);
             setErrorMessage('Failed to update button order: ' + e.message);
         }
     };

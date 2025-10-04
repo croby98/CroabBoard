@@ -23,6 +23,8 @@ const ProfilePage: React.FC = () => {
     const [username, setUsername] = useState('');
     const [buttons, setButtons] = useState<Button[]>([]);
     const [buttonSize, setButtonSize] = useState(150);
+    const [previewSize, setPreviewSize] = useState(150);
+    const [sizeInputValue, setSizeInputValue] = useState('150');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -61,7 +63,10 @@ const ProfilePage: React.FC = () => {
             
             if (profileResponse.ok && profileData.success) {
                 setButtons(profileData.buttons || []);
-                setButtonSize(profileData.btn_size || 150);
+                const size = profileData.btn_size || 150;
+                setButtonSize(size);
+                setPreviewSize(size);
+                setSizeInputValue(size.toString());
             } else {
                 setErrorMessage('Failed to fetch profile data');
             }
@@ -82,6 +87,8 @@ const ProfilePage: React.FC = () => {
 
             if (response.ok) {
                 setButtonSize(newSize);
+                setPreviewSize(newSize);
+                setSizeInputValue(newSize.toString());
                 setSuccessMessage('Button size updated successfully');
                 setTimeout(() => setSuccessMessage(''), 3000);
             } else {
@@ -89,6 +96,28 @@ const ProfilePage: React.FC = () => {
             }
         } catch (error: any) {
             setErrorMessage(error.message || 'Failed to update button size');
+        }
+    };
+
+    const handlePreviewSizeChange = (newSize: number) => {
+        setPreviewSize(newSize);
+        setSizeInputValue(newSize.toString());
+    };
+
+    const handleSizeInputChange = (value: string) => {
+        setSizeInputValue(value);
+        const numValue = parseInt(value);
+        if (!isNaN(numValue) && numValue >= 50 && numValue <= 300) {
+            setPreviewSize(numValue);
+        }
+    };
+
+    const applySizeChange = () => {
+        const newSize = parseInt(sizeInputValue);
+        if (!isNaN(newSize) && newSize >= 50 && newSize <= 300) {
+            handleButtonSizeChange(newSize);
+        } else {
+            setErrorMessage('Button size must be between 50 and 300 pixels');
         }
     };
 
@@ -385,21 +414,72 @@ const ProfilePage: React.FC = () => {
                         <div className="card bg-base-100 shadow-xl mt-6">
                             <div className="card-body">
                                 <h2 className="card-title">Button Size</h2>
-                                <div className="space-y-3">
-                                    <label className="label">
-                                        <span className="label-text">Current Size: {buttonSize}px</span>
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="300"
-                                        value={buttonSize}
-                                        onChange={(e) => handleButtonSizeChange(parseInt(e.target.value))}
-                                        className="range range-primary"
-                                    />
-                                    <div className="flex justify-between text-xs opacity-60">
-                                        <span>0px</span>
-                                        <span>300px</span>
+
+                                {/* Live Preview */}
+                                <div className="space-y-4">
+                                    <div className="bg-base-200 rounded-lg p-6 text-center">
+                                        <p className="text-sm opacity-70 mb-3">Live Preview</p>
+                                        <div className="flex justify-center items-center">
+                                            <div
+                                                className="bg-gradient-to-br from-primary to-secondary rounded-lg shadow-lg flex items-center justify-center text-white font-bold transition-all duration-300"
+                                                style={{
+                                                    width: `${previewSize}px`,
+                                                    height: `${previewSize}px`,
+                                                    fontSize: `${Math.max(12, previewSize / 8)}px`
+                                                }}
+                                            >
+                                                {previewSize}px
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Size Controls */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <label className="label flex-shrink-0">
+                                                <span className="label-text">Size:</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="50"
+                                                max="300"
+                                                value={sizeInputValue}
+                                                onChange={(e) => handleSizeInputChange(e.target.value)}
+                                                className="input input-bordered input-sm flex-1"
+                                                placeholder="50-300"
+                                            />
+                                            <span className="text-sm opacity-70">px</span>
+                                        </div>
+
+                                        <input
+                                            type="range"
+                                            min="50"
+                                            max="300"
+                                            value={previewSize}
+                                            onChange={(e) => handlePreviewSizeChange(parseInt(e.target.value))}
+                                            className="range range-primary"
+                                        />
+
+                                        <div className="flex justify-between text-xs opacity-60">
+                                            <span>50px</span>
+                                            <span>Current: {buttonSize}px</span>
+                                            <span>300px</span>
+                                        </div>
+
+                                        {/* Apply Button */}
+                                        {previewSize !== buttonSize && (
+                                            <div className="pt-2">
+                                                <button
+                                                    onClick={applySizeChange}
+                                                    className="btn btn-primary btn-sm w-full"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    Apply Size Change
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

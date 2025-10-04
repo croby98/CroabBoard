@@ -374,19 +374,22 @@ app.get('/api/linked', authenticateUser, async (req, res) => {
 app.put('/api/linked', authenticateUser, async (req, res) => {
   try {
     const { positions } = req.body;
-    
+
     if (!positions || !Array.isArray(positions)) {
       return res.status(400).json({ success: false, message: 'Invalid positions data' });
     }
-    
+
+    console.log(`🔄 Updating button order for user ${req.user.id}:`, positions);
+
     // Update each button's position
     for (const pos of positions) {
       await Linked.updatePosition(req.user.id, pos.id, pos.new_position);
     }
-    
+
+    console.log(`✅ Successfully updated ${positions.length} button positions`);
     res.json({ success: true, message: 'Button order updated successfully' });
   } catch (error) {
-    console.error('Error reordering buttons:', error);
+    console.error('❌ Error reordering buttons:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -1289,6 +1292,28 @@ app.use((error, req, res, next) => {
   }
   console.error('Server error:', error);
   res.status(500).json({ error: 'Internal server error' });
+});
+
+// Health check endpoint for Docker
+app.get('/health', async (req, res) => {
+  try {
+    // Check database connection
+    await pool.execute('SELECT 1');
+
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: 'connected',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: 'Database connection failed'
+    });
+  }
 });
 
 // Start server
