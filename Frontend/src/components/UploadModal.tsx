@@ -140,9 +140,9 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                 </div>
 
                 {/* Title */}
-                <h3 className="font-bold text-xl text-center mb-2">Nouveau Son</h3>
+                <h3 className="font-bold text-xl text-center mb-2">Upload New Sound</h3>
                 <p className="text-center text-base-content/70 mb-4">
-                    Créez un nouveau bouton sonore
+                    Create a new sound button
                 </p>
 
                 {/* Error Message */}
@@ -169,14 +169,14 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                     {/* Button Name */}
                     <div className="form-control">
                         <label className="label">
-                            <span className="label-text">Nom du bouton *</span>
+                            <span className="label-text">Button Name *</span>
                         </label>
                         <input
                             type="text"
                             value={buttonName}
                             onChange={(e) => setButtonName(e.target.value)}
                             className="input input-bordered w-full"
-                            placeholder="Entrez le nom du bouton"
+                            placeholder="Enter button name"
                             required
                             disabled={isUploading}
                         />
@@ -210,7 +210,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                                 />
                             </svg>
                             <p className="text-base-content/70 mb-1">
-                                Glissez-déposez une image et un audio ici
+                                Drag and drop image and audio here
                             </p>
                             <p className="text-xs text-base-content/50">
                                 Images: png, jpg, gif, webp | Audio: mp3, wav, ogg, m4a
@@ -303,14 +303,14 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                     {/* Category */}
                     <div className="form-control">
                         <label className="label">
-                            <span className="label-text">Catégorie (optionnel)</span>
+                            <span className="label-text">Category (optional)</span>
                         </label>
                         <input
                             type="text"
                             value={categoryName}
                             onChange={(e) => setCategoryName(e.target.value)}
                             className="input input-bordered w-full"
-                            placeholder="Nom de la catégorie"
+                            placeholder="Category name"
                             disabled={isUploading}
                         />
                     </div>
@@ -323,7 +323,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                             className="btn btn-ghost"
                             disabled={isUploading}
                         >
-                            Annuler
+                            Cancel
                         </button>
                         <button
                             type="submit"
@@ -333,7 +333,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                             {isUploading ? (
                                 <>
                                     <span className="loading loading-spinner"></span>
-                                    Envoi en cours...
+                                    Uploading...
                                 </>
                             ) : (
                                 <>
@@ -351,7 +351,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                                         />
                                     </svg>
-                                    Téléverser
+                                    Upload
                                 </>
                             )}
                         </button>

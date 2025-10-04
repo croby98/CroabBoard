@@ -59,7 +59,7 @@ function StatisticsPage() {
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('fr-FR', {
+        return date.toLocaleDateString('en-US', {
             day: 'numeric',
             month: 'short',
             year: 'numeric',
@@ -67,20 +67,21 @@ function StatisticsPage() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <audio ref={audioRef} />
+        <div className="min-h-screen bg-base-200">
+            <div className="container mx-auto px-4 py-8">
+                <audio ref={audioRef} />
 
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-4xl font-bold mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-10 h-10 mr-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        Statistiques
-                    </h1>
-                    <p className="text-base-content/70">Les sons les plus populaires</p>
-                </div>
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-10 h-10 mr-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            Statistics
+                        </h1>
+                        <p className="text-base-content/70">Most popular sounds</p>
+                    </div>
 
                 {/* Limit Selector */}
                 <select
@@ -99,14 +100,14 @@ function StatisticsPage() {
                 <div className="flex items-center justify-center py-16">
                     <div className="loading loading-spinner loading-lg"></div>
                 </div>
-            ) : mostPlayed.length === 0 ? (
-                <div className="text-center py-16">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-24 h-24 mx-auto mb-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    <h3 className="text-2xl font-semibold mb-2">Aucune statistique</h3>
-                    <p className="text-base-content/70">Les statistiques apparaîtront lorsque des sons seront joués</p>
-                </div>
+                ) : mostPlayed.length === 0 ? (
+                    <div className="text-center py-16">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-24 h-24 mx-auto mb-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <h3 className="text-2xl font-semibold mb-2">No Statistics</h3>
+                        <p className="text-base-content/70">Statistics will appear once sounds are played</p>
+                    </div>
             ) : (
                 <div className="space-y-3">
                     {mostPlayed.map((button, index) => (
@@ -158,14 +159,14 @@ function StatisticsPage() {
                                                 {button.category_name}
                                             </span>
                                         )}
-                                        <span>Dernière lecture: {formatDate(button.last_played)}</span>
+                                        <span>Last played: {formatDate(button.last_played)}</span>
                                     </div>
                                 </div>
 
                                 {/* Play Count */}
                                 <div className="text-right">
                                     <div className="text-3xl font-bold text-primary">{button.play_count}</div>
-                                    <div className="text-sm text-base-content/70">lectures</div>
+                                    <div className="text-sm text-base-content/70">plays</div>
                                 </div>
 
                                 {/* Play Button */}
@@ -180,32 +181,33 @@ function StatisticsPage() {
                 </div>
             )}
 
-            {/* Summary Stats */}
-            {mostPlayed.length > 0 && (
-                <div className="stats stats-vertical lg:stats-horizontal shadow mt-8 w-full">
-                    <div className="stat">
-                        <div className="stat-title">Total de lectures</div>
-                        <div className="stat-value text-primary">
-                            {mostPlayed.reduce((sum, b) => sum + b.play_count, 0).toLocaleString()}
+                {/* Summary Stats */}
+                {mostPlayed.length > 0 && (
+                    <div className="stats stats-vertical lg:stats-horizontal shadow mt-8 w-full">
+                        <div className="stat">
+                            <div className="stat-title">Total Plays</div>
+                            <div className="stat-value text-primary">
+                                {mostPlayed.reduce((sum, b) => sum + b.play_count, 0).toLocaleString()}
+                            </div>
+                            <div className="stat-desc">For {mostPlayed.length} sounds shown</div>
                         </div>
-                        <div className="stat-desc">Pour les {mostPlayed.length} sons affichés</div>
-                    </div>
 
-                    <div className="stat">
-                        <div className="stat-title">Son le plus populaire</div>
-                        <div className="stat-value text-secondary">{mostPlayed[0].play_count}</div>
-                        <div className="stat-desc">{mostPlayed[0].button_name}</div>
-                    </div>
-
-                    <div className="stat">
-                        <div className="stat-title">Moyenne de lectures</div>
-                        <div className="stat-value text-accent">
-                            {Math.round(mostPlayed.reduce((sum, b) => sum + b.play_count, 0) / mostPlayed.length)}
+                        <div className="stat">
+                            <div className="stat-title">Most Popular Sound</div>
+                            <div className="stat-value text-secondary">{mostPlayed[0].play_count}</div>
+                            <div className="stat-desc">{mostPlayed[0].button_name}</div>
                         </div>
-                        <div className="stat-desc">Par son</div>
+
+                        <div className="stat">
+                            <div className="stat-title">Average Plays</div>
+                            <div className="stat-value text-accent">
+                                {Math.round(mostPlayed.reduce((sum, b) => sum + b.play_count, 0) / mostPlayed.length)}
+                            </div>
+                            <div className="stat-desc">Per sound</div>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

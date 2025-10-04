@@ -56,36 +56,37 @@ function FavoritesPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <audio ref={audioRef} />
+        <div className="min-h-screen bg-base-200">
+            <div className="container mx-auto px-4 py-8">
+                <audio ref={audioRef} />
 
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-4xl font-bold mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-10 h-10 mr-3 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                    Mes Favoris
-                </h1>
-                <p className="text-base-content/70">
-                    {favorites.length} son{favorites.length !== 1 ? 's' : ''} favori{favorites.length !== 1 ? 's' : ''}
-                </p>
-            </div>
-
-            {/* Favorites Grid */}
-            {favorites.length === 0 ? (
-                <div className="text-center py-16">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-24 h-24 mx-auto mb-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    <h3 className="text-2xl font-semibold mb-2">Aucun favori</h3>
-                    <p className="text-base-content/70 mb-4">
-                        Ajoutez des sons à vos favoris pour les retrouver facilement ici
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-10 h-10 mr-3 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                        </svg>
+                        My Favorites
+                    </h1>
+                    <p className="text-base-content/70">
+                        {favorites.length} favorite sound{favorites.length !== 1 ? 's' : ''}
                     </p>
-                    <a href="/buttons" className="btn btn-primary">
-                        Parcourir les sons
-                    </a>
                 </div>
+
+                {/* Favorites Grid */}
+                {favorites.length === 0 ? (
+                    <div className="text-center py-16">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-24 h-24 mx-auto mb-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        <h3 className="text-2xl font-semibold mb-2">No Favorites</h3>
+                        <p className="text-base-content/70 mb-4">
+                            Add sounds to your favorites to easily find them here
+                        </p>
+                        <a href="/home" className="btn btn-primary">
+                            Browse Sounds
+                        </a>
+                    </div>
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {favorites.map((favorite) => (
@@ -143,7 +144,7 @@ function FavoritesPage() {
                                         openRemoveModal(favorite.id, favorite.button_name);
                                     }}
                                     className="btn btn-sm btn-ghost btn-circle absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="Retirer des favoris"
+                                    title="Remove from favorites"
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -158,7 +159,7 @@ function FavoritesPage() {
                         </div>
                     ))}
                 </div>
-            )}
+                )}
 
             {/* Remove Confirmation Modal */}
             {itemToRemove && (
@@ -182,13 +183,13 @@ function FavoritesPage() {
                         </div>
 
                         {/* Title */}
-                        <h3 className="font-bold text-xl text-center mb-2">Retirer des favoris</h3>
+                        <h3 className="font-bold text-xl text-center mb-2">Remove from Favorites</h3>
 
                         {/* Message */}
                         <p className="text-center py-4 text-base-content/80">
-                            Êtes-vous sûr de vouloir retirer<br />
+                            Are you sure you want to remove<br />
                             <strong className="text-lg">{itemToRemove.name}</strong><br />
-                            de vos favoris ?
+                            from your favorites?
                         </p>
 
                         {/* Actions */}
@@ -197,7 +198,7 @@ function FavoritesPage() {
                                 className="btn btn-ghost"
                                 onClick={() => setItemToRemove(null)}
                             >
-                                Annuler
+                                Cancel
                             </button>
                             <button
                                 className="btn btn-error"
@@ -206,12 +207,13 @@ function FavoritesPage() {
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
-                                Retirer
+                                Remove
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 }

@@ -41,12 +41,12 @@ function HistoryPage() {
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMins < 1) return 'À l\'instant';
-        if (diffMins < 60) return `Il y a ${diffMins} min`;
-        if (diffHours < 24) return `Il y a ${diffHours}h`;
-        if (diffDays < 7) return `Il y a ${diffDays}j`;
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} min ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
 
-        return date.toLocaleDateString('fr-FR', {
+        return date.toLocaleDateString('en-US', {
             day: 'numeric',
             month: 'short',
             year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
@@ -91,76 +91,77 @@ function HistoryPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <audio ref={audioRef} />
+        <div className="min-h-screen bg-base-200">
+            <div className="container mx-auto px-4 py-8">
+                <audio ref={audioRef} />
 
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-4xl font-bold mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-10 h-10 mr-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Historique
-                    </h1>
-                    <p className="text-base-content/70">
-                        {filteredHistory.length} lecture{filteredHistory.length !== 1 ? 's' : ''}
-                    </p>
-                </div>
-
-                <div className="flex gap-2">
-                    {/* Filter Tabs */}
-                    <div className="tabs tabs-boxed">
-                        <button
-                            className={`tab ${filter === 'all' ? 'tab-active' : ''}`}
-                            onClick={() => setFilter('all')}
-                        >
-                            Tout
-                        </button>
-                        <button
-                            className={`tab ${filter === 'today' ? 'tab-active' : ''}`}
-                            onClick={() => setFilter('today')}
-                        >
-                            Aujourd'hui
-                        </button>
-                        <button
-                            className={`tab ${filter === 'week' ? 'tab-active' : ''}`}
-                            onClick={() => setFilter('week')}
-                        >
-                            Cette semaine
-                        </button>
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-10 h-10 mr-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Play History
+                        </h1>
+                        <p className="text-base-content/70">
+                            {filteredHistory.length} play{filteredHistory.length !== 1 ? 's' : ''}
+                        </p>
                     </div>
 
-                    {/* Clear Button */}
-                    {history.length > 0 && (
-                        <button
-                            onClick={() => setShowClearModal(true)}
-                            className="btn btn-error btn-outline"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Effacer
-                        </button>
-                    )}
-                </div>
-            </div>
+                    <div className="flex gap-2">
+                        {/* Filter Tabs */}
+                        <div className="tabs tabs-boxed">
+                            <button
+                                className={`tab ${filter === 'all' ? 'tab-active' : ''}`}
+                                onClick={() => setFilter('all')}
+                            >
+                                All
+                            </button>
+                            <button
+                                className={`tab ${filter === 'today' ? 'tab-active' : ''}`}
+                                onClick={() => setFilter('today')}
+                            >
+                                Today
+                            </button>
+                            <button
+                                className={`tab ${filter === 'week' ? 'tab-active' : ''}`}
+                                onClick={() => setFilter('week')}
+                            >
+                                This Week
+                            </button>
+                        </div>
 
-            {/* History List */}
-            {filteredHistory.length === 0 ? (
-                <div className="text-center py-16">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-24 h-24 mx-auto mb-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h3 className="text-2xl font-semibold mb-2">
-                        {filter === 'all' ? 'Aucun historique' : 'Aucune lecture pour cette période'}
-                    </h3>
-                    <p className="text-base-content/70">
-                        {filter === 'all'
-                            ? 'Jouez des sons pour les voir apparaître dans votre historique'
-                            : 'Essayez un autre filtre'}
-                    </p>
+                        {/* Clear Button */}
+                        {history.length > 0 && (
+                            <button
+                                onClick={() => setShowClearModal(true)}
+                                className="btn btn-error btn-outline"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Clear
+                            </button>
+                        )}
+                    </div>
                 </div>
+
+                {/* History List */}
+                {filteredHistory.length === 0 ? (
+                    <div className="text-center py-16">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-24 h-24 mx-auto mb-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 className="text-2xl font-semibold mb-2">
+                            {filter === 'all' ? 'No History' : 'No plays for this period'}
+                        </h3>
+                        <p className="text-base-content/70">
+                            {filter === 'all'
+                                ? 'Play sounds to see them appear in your history'
+                                : 'Try a different filter'}
+                        </p>
+                    </div>
             ) : (
                 <div className="space-y-2">
                     {filteredHistory.map((entry, index) => (
@@ -235,12 +236,12 @@ function HistoryPage() {
                         </div>
 
                         {/* Title */}
-                        <h3 className="font-bold text-xl text-center mb-2">Effacer l'historique</h3>
+                        <h3 className="font-bold text-xl text-center mb-2">Clear History</h3>
 
                         {/* Message */}
                         <p className="text-center py-4 text-base-content/80">
-                            Êtes-vous sûr de vouloir effacer tout l'historique ?<br />
-                            <span className="text-warning font-semibold mt-2 block">⚠️ Cette action est irréversible</span>
+                            Are you sure you want to clear all history?<br />
+                            <span className="text-warning font-semibold mt-2 block">⚠️ This action is irreversible</span>
                         </p>
 
                         {/* Actions */}
@@ -249,7 +250,7 @@ function HistoryPage() {
                                 className="btn btn-ghost"
                                 onClick={() => setShowClearModal(false)}
                             >
-                                Annuler
+                                Cancel
                             </button>
                             <button
                                 className="btn btn-error"
@@ -258,12 +259,13 @@ function HistoryPage() {
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
-                                Effacer tout
+                                Clear All
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 }
