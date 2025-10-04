@@ -215,14 +215,36 @@ function HistoryPage() {
 
             {/* Clear History Confirmation Modal */}
             {showClearModal && (
-                <div className="modal modal-open">
-                    <div className="modal-box">
-                        <h3 className="font-bold text-lg mb-4">Effacer l'historique</h3>
-                        <p className="py-4">
+                <div className="modal modal-open" onClick={() => setShowClearModal(false)}>
+                    <div className="modal-box relative" onClick={(e) => e.stopPropagation()}>
+                        {/* Close button */}
+                        <button
+                            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                            onClick={() => setShowClearModal(false)}
+                        >
+                            ✕
+                        </button>
+
+                        {/* Icon */}
+                        <div className="flex justify-center mb-4">
+                            <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="font-bold text-xl text-center mb-2">Effacer l'historique</h3>
+
+                        {/* Message */}
+                        <p className="text-center py-4 text-base-content/80">
                             Êtes-vous sûr de vouloir effacer tout l'historique ?<br />
-                            <span className="text-warning">Cette action est irréversible.</span>
+                            <span className="text-warning font-semibold mt-2 block">⚠️ Cette action est irréversible</span>
                         </p>
-                        <div className="modal-action">
+
+                        {/* Actions */}
+                        <div className="modal-action justify-center gap-3">
                             <button
                                 className="btn btn-ghost"
                                 onClick={() => setShowClearModal(false)}
@@ -233,6 +255,9 @@ function HistoryPage() {
                                 className="btn btn-error"
                                 onClick={confirmClearHistory}
                             >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                                 Effacer tout
                             </button>
                         </div>

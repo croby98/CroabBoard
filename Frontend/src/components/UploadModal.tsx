@@ -1,5 +1,4 @@
-import { Dialog, Transition } from '@headlessui/react';
-import React, { Fragment, useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
 interface UploadModalProps {
     isOpen: boolean;
@@ -106,161 +105,260 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
         }
     };
 
+    if (!isOpen) return null;
+
     return (
-        <Transition show={isOpen} as={Fragment}>
-            <Dialog onClose={handleClose} className="relative z-50">
-                {/* Backdrop */}
-                <Transition.Child
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0"
-                    enterTo="opacity-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100"
-                    leaveTo="opacity-0"
+        <div className="modal modal-open" onClick={handleClose}>
+            <div className="modal-box relative max-w-2xl" onClick={(e) => e.stopPropagation()}>
+                {/* Close button */}
+                <button
+                    className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    onClick={handleClose}
+                    disabled={isUploading}
                 >
-                    <div className="fixed inset-0 bg-black bg-opacity-30" />
-                </Transition.Child>
+                    ✕
+                </button>
 
-                {/* Modal Content */}
-                <div className="fixed inset-0 flex items-center justify-center p-4">
-                    <Transition.Child
-                        as={Fragment}
-                        enter="ease-out duration-300"
-                        enterFrom="opacity-0 scale-95"
-                        enterTo="opacity-100 scale-100"
-                        leave="ease-in duration-200"
-                        leaveFrom="opacity-100 scale-100"
-                        leaveTo="opacity-0 scale-95"
+                {/* Upload Icon */}
+                <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-8 h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                            />
+                        </svg>
+                    </div>
+                </div>
+
+                {/* Title */}
+                <h3 className="font-bold text-xl text-center mb-2">Nouveau Son</h3>
+                <p className="text-center text-base-content/70 mb-4">
+                    Créez un nouveau bouton sonore
+                </p>
+
+                {/* Error Message */}
+                {errorMessage && (
+                    <div className="alert alert-error mb-4">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="stroke-current shrink-0 h-6 w-6"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                        <span>{errorMessage}</span>
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Button Name */}
+                    <div className="form-control">
+                        <label className="label">
+                            <span className="label-text">Nom du bouton *</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={buttonName}
+                            onChange={(e) => setButtonName(e.target.value)}
+                            className="input input-bordered w-full"
+                            placeholder="Entrez le nom du bouton"
+                            required
+                            disabled={isUploading}
+                        />
+                    </div>
+
+                    {/* Drag & Drop Zone */}
+                    <div
+                        ref={dropRef}
+                        onDragOver={onDragOver}
+                        onDragLeave={onDragLeave}
+                        onDrop={onDrop}
+                        className={`border-2 border-dashed rounded-lg p-6 transition-all ${
+                            isDragging
+                                ? 'border-primary bg-primary/10'
+                                : 'border-base-300 bg-base-200'
+                        }`}
                     >
-                        <Dialog.Panel className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow-lg">
-                            <Dialog.Title className="text-lg font-medium text-gray-100 mb-2">
-                                Upload New Sound Button
-                            </Dialog.Title>
-                            <Dialog.Description className="text-sm text-gray-400 mb-4">
-                                Create a new sound button by uploading an image and audio file.
-                            </Dialog.Description>
+                        <div className="text-center">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="w-12 h-12 mx-auto mb-3 text-base-content/50"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                />
+                            </svg>
+                            <p className="text-base-content/70 mb-1">
+                                Glissez-déposez une image et un audio ici
+                            </p>
+                            <p className="text-xs text-base-content/50">
+                                Images: png, jpg, gif, webp | Audio: mp3, wav, ogg, m4a
+                            </p>
+                        </div>
+                    </div>
 
-                            {errorMessage && (
-                                <div className="mb-4 p-3 bg-red-900 border border-red-700 rounded text-red-100 text-sm">
-                                    {errorMessage}
+                    {/* File Previews */}
+                    {(imageFile || audioFile) && (
+                        <div className="grid grid-cols-2 gap-4">
+                            {imageFile && (
+                                <div className="badge badge-success gap-2">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                        />
+                                    </svg>
+                                    {imageFile.name}
                                 </div>
                             )}
-
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                {/* Button Name */}
-                                <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-100 mb-1">
-                                        Button Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="name"
-                                        value={buttonName}
-                                        onChange={(e) => setButtonName(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        placeholder="Enter button name"
-                                        required
-                                        disabled={isUploading}
-                                    />
-                                </div>
-
-                                {/* Drag & Drop Zone */}
-                                <div
-                                    ref={dropRef}
-                                    onDragOver={onDragOver}
-                                    onDragLeave={onDragLeave}
-                                    onDrop={onDrop}
-                                    className={`border-2 border-dashed rounded p-4 transition-colors ${
-                                        isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600 bg-gray-700/30'
-                                    }`}
-                                >
-                                    <p className="text-gray-300 text-sm mb-2">
-                                        Glissez-déposez une image et un audio ici, ou utilisez les champs ci-dessous.
-                                    </p>
-                                    <div className="text-xs text-gray-400">Types supportés: images (png, jpg, gif, webp), audio (mp3, wav, ogg, m4a)</div>
-                                </div>
-
-                                {/* Image Upload */}
-                                <div>
-                                    <label htmlFor="image" className="block text-sm font-medium text-gray-100 mb-1">
-                                        Image File *
-                                    </label>
-                                    <input
-                                        type="file"
-                                        id="image"
-                                        onChange={(e) => {
-                                            if (e.target.files) {
-                                                assignFilesFromList(e.target.files);
-                                            }
-                                        }}
-                                        className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-gray-100 hover:file:bg-gray-600 cursor-pointer"
-                                        accept="image/*"
-                                        required
-                                        disabled={isUploading}
-                                    />
-                                </div>
-
-                                {/* Audio Upload */}
-                                <div>
-                                    <label htmlFor="audio" className="block text-sm font-medium text-gray-100 mb-1">
-                                        Audio File *
-                                    </label>
-                                    <input
-                                        type="file"
-                                        id="audio"
-                                        onChange={(e) => {
-                                            if (e.target.files) {
-                                                assignFilesFromList(e.target.files);
-                                            }
-                                        }}
-                                        className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-gray-100 hover:file:bg-gray-600 cursor-pointer"
-                                        accept="audio/*"
-                                        required
-                                        disabled={isUploading}
-                                    />
-                                </div>
-
-                                {/* Category */}
-                                <div>
-                                    <label htmlFor="category" className="block text-sm font-medium text-gray-100 mb-1">
-                                        Category (Optional)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="category"
-                                        value={categoryName}
-                                        onChange={(e) => setCategoryName(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        placeholder="Enter category name"
-                                        disabled={isUploading}
-                                    />
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex justify-end space-x-3 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={handleClose}
-                                        className="px-4 py-2 text-sm text-gray-300 bg-gray-700 rounded hover:bg-gray-600 transition-colors disabled:opacity-50"
-                                        disabled={isUploading}
+                            {audioFile && (
+                                <div className="badge badge-info gap-2">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
                                     >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        disabled={isUploading}
-                                    >
-                                        {isUploading ? 'Uploading...' : 'Upload'}
-                                    </button>
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                                        />
+                                    </svg>
+                                    {audioFile.name}
                                 </div>
-                            </form>
-                        </Dialog.Panel>
-                    </Transition.Child>
-                </div>
-            </Dialog>
-        </Transition>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Image Upload */}
+                    <div className="form-control">
+                        <label className="label">
+                            <span className="label-text">Image *</span>
+                        </label>
+                        <input
+                            type="file"
+                            onChange={(e) => {
+                                if (e.target.files) {
+                                    assignFilesFromList(e.target.files);
+                                }
+                            }}
+                            className="file-input file-input-bordered w-full"
+                            accept="image/*"
+                            required
+                            disabled={isUploading}
+                        />
+                    </div>
+
+                    {/* Audio Upload */}
+                    <div className="form-control">
+                        <label className="label">
+                            <span className="label-text">Audio *</span>
+                        </label>
+                        <input
+                            type="file"
+                            onChange={(e) => {
+                                if (e.target.files) {
+                                    assignFilesFromList(e.target.files);
+                                }
+                            }}
+                            className="file-input file-input-bordered w-full"
+                            accept="audio/*"
+                            required
+                            disabled={isUploading}
+                        />
+                    </div>
+
+                    {/* Category */}
+                    <div className="form-control">
+                        <label className="label">
+                            <span className="label-text">Catégorie (optionnel)</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={categoryName}
+                            onChange={(e) => setCategoryName(e.target.value)}
+                            className="input input-bordered w-full"
+                            placeholder="Nom de la catégorie"
+                            disabled={isUploading}
+                        />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="modal-action justify-center gap-3">
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            className="btn btn-ghost"
+                            disabled={isUploading}
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={isUploading}
+                        >
+                            {isUploading ? (
+                                <>
+                                    <span className="loading loading-spinner"></span>
+                                    Envoi en cours...
+                                </>
+                            ) : (
+                                <>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="w-5 h-5 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                        />
+                                    </svg>
+                                    Téléverser
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     );
 };
 
