@@ -14,9 +14,10 @@
 
 [Features](#-features) •
 [Quick Start](#-quick-start) •
-[Documentation](#-documentation) •
 [Docker](#-docker-deployment) •
 [API](#-api-reference)
+
+**📖 Documentation:** [Quick Start](./QUICK-START.md) • [Deployment](./DEPLOYMENT.md) • [Docker](./DOCKER.md) • [Uploads](./UPLOADS.md)
 
 </div>
 
@@ -145,9 +146,15 @@ UPLOAD_PATH=./uploads
    git clone https://github.com/yourusername/croabboard.git
    cd croabboard
 
+   # Copy existing uploads (if you have any)
+   ./copy-uploads-to-docker.sh  # Linux/Mac
+   copy-uploads-to-docker.bat   # Windows
+
    # Start all services
    docker-compose up -d
    ```
+
+   📖 **See [UPLOADS.md](./UPLOADS.md) for complete upload management guide**
 
 2. **Manual Docker Build**
    ```bash
@@ -166,13 +173,33 @@ UPLOAD_PATH=./uploads
 
 ### Production Deployment
 
-```bash
-# Production build with optimizations
-docker-compose -f docker-compose.prod.yml up -d
+**See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment guide**
 
-# With SSL and reverse proxy
-docker-compose -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d
+```bash
+# Simple deployment (host mode, IP access)
+docker-compose -f docker-compose.simple.yml up -d
+
+# With reverse proxy (recommended for production)
+docker-compose -f docker-compose.proxy.yml up -d
 ```
+
+**Deployment options:**
+- 📦 **Host Mode** - Direct port mapping, access via IP:PORT
+- 🌐 **Proxy Mode** - Nginx reverse proxy, access via IP or domain
+- 🔒 **SSL/HTTPS** - Complete guide in [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+---
+
+## 🚀 Deployment Guide
+
+For detailed deployment instructions including:
+- ✅ Deployment without domain name (IP-based access)
+- ✅ Deployment with reverse proxy
+- ✅ SSL/HTTPS configuration
+- ✅ Host mode vs Bridge network
+- ✅ Production best practices
+
+**See [DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 ---
 
@@ -495,7 +522,7 @@ docker-compose up --build
 ```
 
 ### Getting Help
-- **Documentation** - Check this README and inline docs
+- **Documentation** - Check this README, [DEPLOYMENT.md](./DEPLOYMENT.md), [DOCKER.md](./DOCKER.md), and [UPLOADS.md](./UPLOADS.md)
 - **Issues** - Search existing GitHub issues
 - **Community** - Join our Discord/Slack community
 - **Support** - Contact the development team
@@ -546,8 +573,8 @@ SOFTWARE.
 
 **Built with ❤️ by the CroabBoard Team**
 
-[⭐ Star us on GitHub](https://github.com/yourusername/croabboard) •
-[🐛 Report Bug](https://github.com/yourusername/croabboard/issues) •
-[💡 Request Feature](https://github.com/yourusername/croabboard/issues)
+[⭐ Star us on GitHub](https://github.com/croby98/croabboard) •
+[🐛 Report Bug](https://github.com/croby98/croabboard/issues) •
+[💡 Request Feature](https://github.com/croby98/croabboard/issues)
 
 </div>

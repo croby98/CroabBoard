@@ -118,6 +118,8 @@ __tests__/
 *.test.js
 *.spec.js
 
-# Development uploads (don't include in image)
-uploads/test/*
-uploads/dev/*
+# Development uploads (don't include in image - use Docker volume instead)
+# Upload files will be managed through Docker volumes
+# Use copy-uploads-to-docker.sh or copy-uploads-to-docker.bat to migrate files
+uploads/*
+!uploads/.gitkeep
