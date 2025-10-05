@@ -11,13 +11,15 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg)](https://www.mysql.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 
 [Features](#-features) •
 [Quick Start](#-quick-start) •
 [Docker](#-docker-deployment) •
-[API](#-api-reference)
+[API](#-api-reference) •
+[Structure](./STRUCTURE.md)
 
-**📖 Documentation:** [Quick Start](./QUICK-START.md) • [Deployment](./DEPLOYMENT.md) • [Docker](./DOCKER.md) • [Uploads](./UPLOADS.md)
+**📖 Documentation:** [Quick Start](./docs/QUICK-START.md) • [Deployment](./docs/DEPLOYMENT.md) • [Docker](./docs/DOCKER.md) • [Uploads](./docs/UPLOADS.md) • [All Docs](./docs/)
 
 </div>
 
@@ -147,14 +149,14 @@ UPLOAD_PATH=./uploads
    cd croabboard
 
    # Copy existing uploads (if you have any)
-   ./copy-uploads-to-docker.sh  # Linux/Mac
-   copy-uploads-to-docker.bat   # Windows
+   ./docker/scripts/copy-uploads-to-docker.sh  # Linux/Mac
+   ./docker/scripts/copy-uploads-to-docker.bat   # Windows
 
    # Start all services
    docker-compose up -d
    ```
 
-   📖 **See [UPLOADS.md](./UPLOADS.md) for complete upload management guide**
+   📖 **See [UPLOADS.md](./docs/UPLOADS.md) for complete upload management guide**
 
 2. **Manual Docker Build**
    ```bash
@@ -173,20 +175,20 @@ UPLOAD_PATH=./uploads
 
 ### Production Deployment
 
-**See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment guide**
+**See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) for complete deployment guide**
 
 ```bash
 # Simple deployment (host mode, IP access)
-docker-compose -f docker-compose.simple.yml up -d
+docker-compose -f docker/docker-compose.simple.yml up -d
 
 # With reverse proxy (recommended for production)
-docker-compose -f docker-compose.proxy.yml up -d
+docker-compose -f docker/docker-compose.proxy.yml up -d
 ```
 
 **Deployment options:**
 - 📦 **Host Mode** - Direct port mapping, access via IP:PORT
 - 🌐 **Proxy Mode** - Nginx reverse proxy, access via IP or domain
-- 🔒 **SSL/HTTPS** - Complete guide in [DEPLOYMENT.md](./DEPLOYMENT.md)
+- 🔒 **SSL/HTTPS** - Complete guide in [DEPLOYMENT.md](./docs/DEPLOYMENT.md)
 
 ---
 
@@ -199,7 +201,7 @@ For detailed deployment instructions including:
 - ✅ Host mode vs Bridge network
 - ✅ Production best practices
 
-**See [DEPLOYMENT.md](./DEPLOYMENT.md)**
+**See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)**
 
 ---
 
@@ -522,7 +524,11 @@ docker-compose up --build
 ```
 
 ### Getting Help
-- **Documentation** - Check this README, [DEPLOYMENT.md](./DEPLOYMENT.md), [DOCKER.md](./DOCKER.md), and [UPLOADS.md](./UPLOADS.md)
+- **Documentation** - Check this README and [docs/](./docs/) folder
+  - [Quick Start](./docs/QUICK-START.md)
+  - [Deployment Guide](./docs/DEPLOYMENT.md)
+  - [Docker Guide](./docs/DOCKER.md)
+  - [Upload Management](./docs/UPLOADS.md)
 - **Issues** - Search existing GitHub issues
 - **Community** - Join our Discord/Slack community
 - **Support** - Contact the development team

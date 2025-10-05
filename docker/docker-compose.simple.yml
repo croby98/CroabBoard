@@ -20,7 +20,7 @@ services:
       MYSQL_COLLATION: utf8mb4_unicode_ci
     volumes:
       - croabboard_db_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d:ro
+      - ../database/init:/docker-entrypoint-initdb.d:ro
     command: [
       'mysqld',
       '--character-set-server=utf8mb4',
@@ -40,7 +40,7 @@ services:
   # Backend API Server
   croabboard-backend:
     build:
-      context: ./Backend
+      context: ../Backend
       dockerfile: Dockerfile
     container_name: croabboard-api
     restart: unless-stopped
@@ -74,7 +74,7 @@ services:
   # Frontend Web Server
   croabboard-frontend:
     build:
-      context: ./Frontend
+      context: ../Frontend
       dockerfile: Dockerfile
     container_name: croabboard-web
     restart: unless-stopped

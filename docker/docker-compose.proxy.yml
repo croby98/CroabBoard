@@ -19,7 +19,7 @@ services:
       MYSQL_COLLATION: utf8mb4_unicode_ci
     volumes:
       - croabboard_db_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d:ro
+      - ../database/init:/docker-entrypoint-initdb.d:ro
     networks:
       - croabboard-network
     command: [
@@ -40,7 +40,7 @@ services:
   # Backend API Server
   croabboard-backend:
     build:
-      context: ./Backend
+      context: ../Backend
       dockerfile: Dockerfile
     container_name: croabboard-api
     restart: unless-stopped
@@ -76,7 +76,7 @@ services:
   # Frontend Web Server
   croabboard-frontend:
     build:
-      context: ./Frontend
+      context: ../Frontend
       dockerfile: Dockerfile
     container_name: croabboard-web
     restart: unless-stopped
@@ -118,9 +118,9 @@ services:
       # Uncomment for HTTPS
       # - "${PROXY_SSL_PORT:-443}:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       # Uncomment for SSL certificates
-      # - ./ssl:/etc/nginx/ssl:ro
+      # - ../ssl:/etc/nginx/ssl:ro
       - croabboard_nginx_logs:/var/log/nginx
     networks:
       - croabboard-network
