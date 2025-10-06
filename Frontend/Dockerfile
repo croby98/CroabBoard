@@ -1,59 +1,41 @@
-# CroabBoard Frontend Dockerfile
-# Multi-stage build for optimized production image
+# Frontend Dockerfile pour CroabBoard
 
-# Stage 1: Build the application
+# Stage 1: Build
 FROM node:18-alpine AS builder
 
-# Set working directory
+# Configuration proxy pour entreprise (optionnel)
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV NO_PROXY=${NO_PROXY}
+
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copier les fichiers package
+COPY package.json package-lock.json* yarn.lock* ./
 
-# Install all dependencies (including dev dependencies for build)
-RUN npm ci && npm cache clean --force
+# Installer les dépendances
+RUN npm ci || npm install
 
-# Copy source code
+# Copier le code source
 COPY . .
 
-# Build the application
+# Build de l'application
 RUN npm run build
 
-# Stage 2: Production image with Nginx
-FROM nginx:alpine AS production
+# Stage 2: Production avec nginx
+FROM nginx:alpine
 
-# Install additional tools
-RUN apk add --no-cache curl
-
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
-
-# Copy built application from builder stage
+# Copier le build depuis le stage précédent
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nginx-custom
-RUN adduser -S croabboard-web -u 1001 -G nginx-custom
+# Copier la configuration nginx personnalisée
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Set permissions
-RUN chown -R croabboard-web:nginx-custom /usr/share/nginx/html
-RUN chown -R croabboard-web:nginx-custom /var/cache/nginx
-RUN chown -R croabboard-web:nginx-custom /var/log/nginx
-RUN chown -R croabboard-web:nginx-custom /etc/nginx/conf.d
-
-# Create nginx PID directory
-RUN mkdir -p /var/run/nginx
-RUN chown -R croabboard-web:nginx-custom /var/run/nginx
-
-# Switch to non-root user
-USER croabboard-web
-
-# Expose port
+# Exposer le port
 EXPOSE 80
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:80/ || exit 1
-
-# Start nginx
+# Commande de démarrage
 CMD ["nginx", "-g", "daemon off;"]

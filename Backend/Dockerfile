@@ -1,49 +1,42 @@
-# CroabBoard Backend Dockerfile
+# Backend Dockerfile pour CroabBoard
 FROM node:18-alpine
 
-# Install system dependencies for production
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/cache/apk/*
+# Configuration proxy pour entreprise (optionnel)
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV NO_PROXY=${NO_PROXY}
 
-# Set working directory
+# Installer les dépendances système pour bcrypt et build native modules
+RUN apk add --no-cache python3 make g++
+
+# Définir le répertoire de travail
 WORKDIR /app
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S croabboard -u 1001
+# Copier les fichiers package
+COPY package.json yarn.lock* package-lock.json* ./
 
-# Copy package files
-COPY package*.json ./
+# Installer les dépendances
+RUN npm ci --only=production || npm install --only=production
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Nettoyer les variables proxy après installation
+ENV HTTP_PROXY=
+ENV HTTPS_PROXY=
 
-# Copy application code
+# Copier le code source
 COPY . .
 
-# Create uploads directory with proper permissions
-RUN mkdir -p uploads/images uploads/audio uploads/avatars
-RUN chown -R croabboard:nodejs uploads
-RUN chmod -R 755 uploads
+# Créer le répertoire uploads avec les bonnes permissions
+RUN mkdir -p uploads && chmod 755 uploads
 
-# Switch to non-root user
-USER croabboard
+# Exposer le port
+EXPOSE 3001
 
-# Expose port
-EXPOSE 5000
+# Variables d'environnement par défaut (à surcharger avec .env)
+ENV NODE_ENV=production
+ENV PORT=3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "const http = require('http'); \
-    const options = { host: 'localhost', port: 5000, path: '/health', timeout: 2000 }; \
-    const req = http.request(options, (res) => { \
-        res.statusCode === 200 ? process.exit(0) : process.exit(1); \
-    }); \
-    req.on('error', () => process.exit(1)); \
-    req.end();"
-
-# Start application
-CMD ["npm", "start"]
+# Commande de démarrage
+CMD ["node", "server.js"]
