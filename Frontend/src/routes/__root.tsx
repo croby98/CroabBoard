@@ -1,5 +1,4 @@
 import { Outlet, createRootRoute } from '@tanstack/react-router';
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
@@ -23,7 +22,6 @@ function AppLayout() {
             <main className="flex flex-col" onContextMenu={e => { e.preventDefault(); return false; }}>
                 <Outlet />
             </main>
-            <TanStackRouterDevtools />
         </>
     );
 }

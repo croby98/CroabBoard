@@ -13,7 +13,6 @@
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/vite": "latest",
     "@tanstack/react-router": "^1.116.0",
-    "@tanstack/react-router-devtools": "^1.131.49",
     "@tanstack/router-plugin": "^1.116.1",
     "clsx": "^2.1.1",
     "daisyui": "latest",
