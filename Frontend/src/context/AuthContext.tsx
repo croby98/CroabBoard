@@ -4,7 +4,7 @@ interface User {
     id: number;
     username: string;
     btnSize: number;
-    isAdmin: boolean;
+    isAdmin: number; // 0 = user, 1 = light_admin, 2 = super_admin
     avatar: string | null;
 }
 
@@ -12,7 +12,9 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     isAuthenticated: boolean;
-    isAdmin: boolean;
+    isAdmin: boolean; // true if any admin role (1 or 2)
+    isSuperAdmin: boolean; // true only if super_admin (2)
+    isLightAdmin: boolean; // true only if light_admin (1)
     login: (username: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     updateAvatar: (avatar: string | null) => void;
@@ -113,7 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user,
             loading,
             isAuthenticated: !!user,
-            isAdmin: user?.isAdmin || false,
+            isAdmin: (user?.isAdmin === 1 || user?.isAdmin === 2) || false,
+            isSuperAdmin: user?.isAdmin === 2 || false,
+            isLightAdmin: user?.isAdmin === 1 || false,
             login,
             logout,
             updateAvatar

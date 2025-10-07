@@ -24,7 +24,7 @@ import {
 } from './models/mysql-models.js';
 
 // Import auth middleware
-import { authenticateUser, requireAdmin } from './middleware/auth.js';
+import { authenticateUser, requireAdmin, requireSuperAdmin } from './middleware/auth.js';
 
 // Audit logging helper
 const logAction = async (userId, username, action, req, details = {}) => {
@@ -202,7 +202,7 @@ app.post('/api/login', async (req, res) => {
           id: user.id,
           username: user.username,
           btnSize: user.btn_size,
-          isAdmin: !!(user.is_admin),
+          isAdmin: user.is_admin || 0,
           avatar: user.avatar || null
         }
       });
@@ -233,7 +233,7 @@ app.get('/api/me', authenticateUser, async (req, res) => {
         id: user.id,
         username: user.username,
         btnSize: user.btn_size,
-        isAdmin: !!(user.is_admin),
+        isAdmin: user.is_admin || 0,
         avatar: user.avatar || null
       }
     });
@@ -767,7 +767,7 @@ app.put('/api/categories/:id', authenticateUser, async (req, res) => {
   }
 });
 
-app.delete('/api/categories/:id', authenticateUser, async (req, res) => {
+app.delete('/api/categories/:id', requireSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -1155,11 +1155,8 @@ app.get('/api/stats/button/:uploadedId', async (req, res) => {
 // ===== ADMIN ENDPOINTS =====
 
 // Get all buttons for admin
-app.get('/api/admin/buttons', authenticateUser, async (req, res) => {
+app.get('/api/admin/buttons', requireAdmin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
 
     const buttons = await Uploaded.getAll();
 
@@ -1185,11 +1182,8 @@ app.get('/api/admin/buttons', authenticateUser, async (req, res) => {
 });
 
 // Update button
-app.put('/api/admin/buttons/:id', authenticateUser, async (req, res) => {
+app.put('/api/admin/buttons/:id', requireAdmin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
 
     const { id } = req.params;
     const { button_name, category_id } = req.body;
@@ -1210,13 +1204,9 @@ app.put('/api/admin/buttons/:id', authenticateUser, async (req, res) => {
   }
 });
 
-// Delete button
-app.delete('/api/admin/buttons/:id', authenticateUser, async (req, res) => {
+// Delete button (super admin only)
+app.delete('/api/admin/buttons/:id', requireSuperAdmin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     const { id } = req.params;
 
     // Get button info before deletion for logging
@@ -1238,11 +1228,8 @@ app.delete('/api/admin/buttons/:id', authenticateUser, async (req, res) => {
 });
 
 // Get all users for admin
-app.get('/api/admin/users', authenticateUser, async (req, res) => {
+app.get('/api/admin/users', requireSuperAdmin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
 
     const users = await User.getAllWithStats();
     res.json({ success: true, users });
@@ -1253,11 +1240,8 @@ app.get('/api/admin/users', authenticateUser, async (req, res) => {
 });
 
 // Get deleted buttons history
-app.get('/api/admin/deleted-buttons', authenticateUser, async (req, res) => {
+app.get('/api/admin/deleted-buttons', requireAdmin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
 
     const deleted = await DeleteHistory.getAll();
     res.json({ success: true, buttons: deleted });
@@ -1267,13 +1251,9 @@ app.get('/api/admin/deleted-buttons', authenticateUser, async (req, res) => {
   }
 });
 
-// Get audit logs
-app.get('/api/admin/audit-logs', authenticateUser, async (req, res) => {
+// Get audit logs (super admin only)
+app.get('/api/admin/audit-logs', requireSuperAdmin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     const limit = parseInt(req.query.limit) || 50;
     const auditLogs = await AuditLog.getAll(limit);
     res.json({ success: true, logs: auditLogs });

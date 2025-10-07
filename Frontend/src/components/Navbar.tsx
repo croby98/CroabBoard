@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
 import {useLocation, useNavigate} from "@tanstack/react-router";
 import UploadModal from './UploadModal';
 import ThemeSelector from './ui/ThemeSelector';
@@ -13,14 +12,12 @@ export const Navbar: React.FC = () => {
     const closeModal = () => setIsModalOpen(false);
 
     const { user, logout, isAdmin } = useAuth(); // Access the `logout` method from AuthContext
-    const { theme, toggleTheme } = useTheme(); // Access theme methods
     const navigate = useNavigate();
 
     const location = useLocation(); // Get the current location from React Router
     const [navigation, setNavigation] = useState([
         { name: 'Home', href: '/home', current: false, icon: '🏠' },
         { name: 'Buttons', href: '/buttons', current: false, icon: '🎵' },
-        { name: 'Favorites', href: '/favorites', current: false, icon: '❤️' },
         { name: 'Statistics', href: '/statistics', current: false, icon: '📊' },
     ]);
 

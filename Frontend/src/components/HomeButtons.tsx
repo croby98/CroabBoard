@@ -22,6 +22,7 @@ const HomeButtons: React.FC = () => {
     const { user } = useAuth();
     const { toggleFavorite, isFavorite } = useFavorites();
     const [buttons, setButtons] = useState<Button[]>([]);
+    const [favoriteButtons, setFavoriteButtons] = useState<Button[]>([]);
     const [errorMessage, setErrorMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [masterVolume, setMasterVolume] = useState(0.5);
@@ -40,18 +41,44 @@ const HomeButtons: React.FC = () => {
     } | null>(null);
 
 
+    const refreshFavorites = async () => {
+        try {
+            const favResponse = await fetch('http://localhost:5000/api/favorites', {
+                method: 'GET',
+                credentials: 'include',
+            });
+            const favData = await favResponse.json();
+
+            if (favResponse.ok && favData.success) {
+                const transformedFavorites = favData.favorites.map((fav: any) => ({
+                    image_id: fav.image_id,
+                    uploaded_id: fav.uploaded_id,
+                    button_name: fav.button_name || 'Untitled',
+                    image_filename: fav.image_filename,
+                    sound_filename: fav.sound_filename,
+                    category_color: fav.category_color || '#3B82F6',
+                }));
+                setFavoriteButtons(transformedFavorites);
+                console.log('⭐ Refreshed favorites:', transformedFavorites.length);
+            }
+        } catch (error) {
+            console.error('Error refreshing favorites:', error);
+        }
+    };
+
     const fetchUserButtons = async () => {
         setLoading(true);
-        setErrorMessage('');        
+        setErrorMessage('');
         try {
+            // Fetch buttons
             const response = await fetch('http://localhost:5000/api/linked', {
                 method: 'GET',
                 credentials: 'include',
             });
             const data = await response.json();
-                        
+
             if (response.ok && data.success) {
-                
+
                 // Transform the data to match the expected format
                 const transformedButtons = data.linked.map((button: any, index: number) => ({
                     image_id: button.image_id,
@@ -65,6 +92,9 @@ const HomeButtons: React.FC = () => {
 
                 console.log('📥 Loaded buttons in order (by tri):', transformedButtons.map(b => ({ name: b.button_name, tri: b.tri, uploaded_id: b.uploaded_id })));
                 setButtons(transformedButtons);
+
+                // Fetch favorites
+                await refreshFavorites();
 
                 // Get user button size from /api/me endpoint
                 const userResponse = await fetch('http://localhost:5000/api/me', {
@@ -464,6 +494,79 @@ const HomeButtons: React.FC = () => {
                     </div>
                 )}
 
+                {/* Favorites Section */}
+                {!loading && !errorMessage && favoriteButtons.length > 0 && (
+                    <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                            <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                            </svg>
+                            <h2 className="text-lg font-bold">Favorites</h2>
+                            <div className="badge badge-primary">{favoriteButtons.length}</div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 justify-start pb-4 border-b-2 border-base-300">
+                            {favoriteButtons.map((button) => (
+                                <div
+                                    key={`fav-${button.uploaded_id}`}
+                                    className="group relative cursor-pointer transition-all duration-200 hover:scale-105 hover:z-10"
+                                    style={{
+                                        width: user?.btnSize || 100,
+                                        height: user?.btnSize || 100
+                                    }}
+                                >
+                                    {/* Button Container with Category Border */}
+                                    <div
+                                        className="relative w-full h-full overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+                                        style={{
+                                            borderWidth: '3px',
+                                            borderStyle: 'solid',
+                                            borderColor: button.category_color,
+                                        }}
+                                        onClick={() => PlaySound(button.sound_filename, button.image_id, button.uploaded_id)}
+                                        onContextMenu={(e) => handleContextMenu(e, button.image_id, button.uploaded_id, button.sound_filename)}
+                                    >
+                                        {/* Background Image - Full Cover */}
+                                        <img
+                                            src={`${apiUrlImagesFiles}${button.image_filename}`}
+                                            alt={button.button_name}
+                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
+                                            loading="lazy"
+                                        />
+
+                                        {/* Gradient Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                                        {/* Button Name Overlay */}
+                                        <div className="absolute bottom-0 left-0 right-0 p-2 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10 pointer-events-none">
+                                            <p className="text-white font-semibold text-xs truncate drop-shadow-lg text-center">
+                                                {button.button_name}
+                                            </p>
+                                        </div>
+
+                                        {/* Favorite Button - Top Left (always filled) */}
+                                        <button
+                                            className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center transition-all duration-300 hover:scale-110 z-20 pointer-events-auto"
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                await toggleFavorite(button.uploaded_id);
+                                                // Refresh favorites list from server
+                                                await refreshFavorites();
+                                            }}
+                                        >
+                                            <svg className="w-5 h-5 text-red-500 fill-current" viewBox="0 0 20 20">
+                                                <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                                            </svg>
+                                        </button>
+
+                                        {/* Click Feedback */}
+                                        <div className="absolute inset-0 bg-white/20 opacity-0 group-active:opacity-100 transition-opacity duration-75 pointer-events-none" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Sound Buttons - Full Page Grid */}
                 <div className="flex-1">
                     {!loading && !errorMessage && buttons.length > 0 && (
@@ -515,9 +618,11 @@ const HomeButtons: React.FC = () => {
                                         {/* Favorite Button - Top Left */}
                                         <button
                                             className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-20 pointer-events-auto"
-                                            onClick={(e) => {
+                                            onClick={async (e) => {
                                                 e.stopPropagation();
-                                                toggleFavorite(button.uploaded_id);
+                                                await toggleFavorite(button.uploaded_id);
+                                                // Refresh favorites list from server
+                                                await refreshFavorites();
                                             }}
                                         >
                                             {isFavorite(button.uploaded_id) ? (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 interface FavoriteButton {
-    id: number;
+    uploaded_id: number;
     button_name: string;
     image_filename: string;
     sound_filename: string;
@@ -40,7 +40,7 @@ export const useFavorites = () => {
 
     const isFavorite = useCallback((uploadedId: number): boolean => {
         // Check if the uploadedId exists in the favorites array
-        return favorites.some(fav => fav.id === uploadedId);
+        return favorites.some(fav => fav.uploaded_id === uploadedId);
     }, [favorites]);
 
     const addFavorite = useCallback(async (uploadedId: number) => {

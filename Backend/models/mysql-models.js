@@ -544,12 +544,17 @@ export class Favorite {
   
 
   static async getUserFavorites(userId) {
-   
+
     const [rows] = await pool.execute(`
-      SELECT u.*,
+      SELECT u.id as uploaded_id,
+             u.image_id,
+             u.sound_id,
+             u.button_name,
+             u.category_id,
              img.filename as image_filename,
              snd.filename as sound_filename,
-             cat.name as category_name, cat.color as category_color,
+             cat.name as category_name,
+             cat.color as category_color,
              f.created_at as favorited_at
       FROM favorite f
       JOIN uploaded u ON f.uploaded_id = u.id
