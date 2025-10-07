@@ -1,7 +1,7 @@
 import express from 'express';
 import { User, DeleteHistory, Linked } from '../models/mysql-models.js';
 import AuditLog from '../models/AuditLog.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
 import { logAction } from '../middleware/auditLogger.js';
 
 const router = express.Router();
@@ -28,8 +28,59 @@ router.get('/users', requireAdmin, async (req, res) => {
   }
 });
 
-// Toggle user admin status (admin only)
-router.post('/users/:userId/toggle-admin', requireAdmin, async (req, res) => {
+// Update user admin role (super admin only)
+router.post('/users/:userId/role', requireSuperAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body; // 0 = user, 1 = light_admin, 2 = super_admin
+
+    // Validate role
+    if (![0, 1, 2].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Must be 0 (user), 1 (light admin), or 2 (super admin)'
+      });
+    }
+
+    // Prevent modifying own role
+    if (parseInt(userId) === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot modify your own admin role'
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    await User.updateAdminRole(userId, role);
+
+    const roleNames = { 0: 'user', 1: 'light admin', 2: 'super admin' };
+
+    // Log the action
+    await logAction(req, 'admin_role_changed', {
+      targetUserId: userId,
+      targetUsername: user.username,
+      oldRole: user.is_admin,
+      newRole: role,
+      roleName: roleNames[role]
+    });
+
+    res.json({
+      success: true,
+      message: `User ${user.username} role updated to ${roleNames[role]}`,
+      role: role
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ success: false, error: 'Failed to update user role' });
+  }
+});
+
+// Toggle user admin status (admin only) - DEPRECATED, kept for compatibility
+router.post('/users/:userId/toggle-admin', requireSuperAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -67,8 +118,8 @@ router.post('/users/:userId/toggle-admin', requireAdmin, async (req, res) => {
   }
 });
 
-// Delete user (admin only)
-router.delete('/users/:userId', requireAdmin, async (req, res) => {
+// Delete user (super admin only)
+router.delete('/users/:userId', requireSuperAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -181,8 +232,8 @@ router.delete('/audit-logs/cleanup', requireAdmin, async (req, res) => {
   }
 });
 
-// Get all deleted buttons (admin only)
-router.get('/deleted-buttons', requireAdmin, async (req, res) => {
+// Get all deleted buttons (super admin only - light admin has no access)
+router.get('/deleted-buttons', requireSuperAdmin, async (req, res) => {
   try {
     const deletedButtons = await DeleteHistory.getAll();
 
@@ -196,8 +247,8 @@ router.get('/deleted-buttons', requireAdmin, async (req, res) => {
   }
 });
 
-// Restore deleted button (admin only)
-router.post('/deleted-buttons/:id/restore', requireAdmin, async (req, res) => {
+// Restore deleted button (super admin only - light admin has no access)
+router.post('/deleted-buttons/:id/restore', requireSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 

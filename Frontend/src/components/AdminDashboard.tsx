@@ -6,7 +6,7 @@ interface User {
     username: string;
     btn_size: number;
     button_count: number;
-    is_admin: boolean;
+    is_admin: number; // 0 = user, 1 = light_admin, 2 = super_admin
     avatar: string | null;
 }
 
@@ -243,6 +243,30 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleUpdateRole = async (userId: number, role: number) => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/role`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ role }),
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSuccessMessage(data.message);
+                fetchDashboardData();
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                setErrorMessage(data.message || 'Failed to update user role');
+            }
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Failed to update user role');
+        }
+    };
+
     const handleToggleAdmin = async (userId: number) => {
         try {
             const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/toggle-admin`, {
@@ -407,11 +431,11 @@ const AdminDashboard: React.FC = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-4xl font-bold">Admin Dashboard</h1>
-                    <div className="badge badge-primary badge-lg">
+                    <div className={`badge badge-lg ${isSuperAdmin ? 'badge-error' : 'badge-warning'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
-                        Admin Access
+                        {isSuperAdmin ? 'Super Admin' : 'Light Admin'}
                     </div>
                 </div>
 
@@ -473,20 +497,22 @@ const AdminDashboard: React.FC = () => {
                         </svg>
                         Categories
                     </a>
-                    <a
-                        className={`tab tab-lg ${activeTab === 'deleted' ? 'tab-active' : ''}`}
-                        onClick={() => setActiveTab('deleted')}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Deleted Items
-                        {deletedButtons.filter(d => d.status === 'deleted').length > 0 && (
-                            <span className="badge badge-error badge-sm ml-2">
-                                {deletedButtons.filter(d => d.status === 'deleted').length}
-                            </span>
-                        )}
-                    </a>
+                    {isSuperAdmin && (
+                        <a
+                            className={`tab tab-lg ${activeTab === 'deleted' ? 'tab-active' : ''}`}
+                            onClick={() => setActiveTab('deleted')}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Deleted Items
+                            {deletedButtons.filter(d => d.status === 'deleted').length > 0 && (
+                                <span className="badge badge-error badge-sm ml-2">
+                                    {deletedButtons.filter(d => d.status === 'deleted').length}
+                                </span>
+                            )}
+                        </a>
+                    )}
                     {isSuperAdmin && (
                         <a
                             className={`tab tab-lg ${activeTab === 'audit' ? 'tab-active' : ''}`}
@@ -612,8 +638,10 @@ const AdminDashboard: React.FC = () => {
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    {u.is_admin ? (
-                                                        <span className="badge badge-primary">Admin</span>
+                                                    {u.is_admin === 2 ? (
+                                                        <span className="badge badge-error">Super Admin</span>
+                                                    ) : u.is_admin === 1 ? (
+                                                        <span className="badge badge-warning">Light Admin</span>
                                                     ) : (
                                                         <span className="badge badge-ghost">User</span>
                                                     )}
@@ -624,22 +652,29 @@ const AdminDashboard: React.FC = () => {
                                                 </td>
                                                 <td>
                                                     <div className="flex gap-2">
-                                                        <button
-                                                            className={`btn btn-sm ${u.is_admin ? 'btn-warning' : 'btn-info'}`}
-                                                            onClick={() => handleToggleAdmin(u.id)}
-                                                            disabled={u.id === user?.id}
-                                                            title={u.id === user?.id ? "Can't modify your own admin status" : "Toggle admin status"}
-                                                        >
-                                                            {u.is_admin ? 'Revoke Admin' : 'Make Admin'}
-                                                        </button>
-                                                        <button
-                                                            className="btn btn-error btn-sm"
-                                                            onClick={() => setUserToDelete(u)}
-                                                            disabled={u.id === user?.id}
-                                                            title={u.id === user?.id ? "Can't delete yourself" : "Delete user"}
-                                                        >
-                                                            Delete
-                                                        </button>
+                                                        {isSuperAdmin && (
+                                                            <select
+                                                                className="select select-bordered select-sm"
+                                                                value={u.is_admin}
+                                                                onChange={(e) => handleUpdateRole(u.id, parseInt(e.target.value))}
+                                                                disabled={u.id === user?.id}
+                                                                title={u.id === user?.id ? "Can't modify your own role" : "Change user role"}
+                                                            >
+                                                                <option value={0}>User</option>
+                                                                <option value={1}>Light Admin</option>
+                                                                <option value={2}>Super Admin</option>
+                                                            </select>
+                                                        )}
+                                                        {isSuperAdmin && (
+                                                            <button
+                                                                className="btn btn-error btn-sm"
+                                                                onClick={() => setUserToDelete(u)}
+                                                                disabled={u.id === user?.id}
+                                                                title={u.id === user?.id ? "Can't delete yourself" : "Delete user"}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -918,7 +953,12 @@ const AdminDashboard: React.FC = () => {
                                                         )}
                                                     </td>
                                                     <td>{button.uploaded_by_username}</td>
-                                                    <td>{new Date(button.upload_date || button.created_at).toLocaleDateString()}</td>
+                                                    <td>
+                                                        {button.created_at
+                                                            ? new Date(button.created_at).toLocaleDateString()
+                                                            : 'N/A'
+                                                        }
+                                                    </td>
                                                     <td>
                                                         <div className="flex gap-2">
                                                             <button

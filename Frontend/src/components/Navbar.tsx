@@ -11,7 +11,7 @@ export const Navbar: React.FC = () => {
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
 
-    const { user, logout, isAdmin } = useAuth(); // Access the `logout` method from AuthContext
+    const { user, logout, isAdmin, isSuperAdmin, isLightAdmin } = useAuth(); // Access the `logout` method from AuthContext
     const navigate = useNavigate();
 
     const location = useLocation(); // Get the current location from React Router
@@ -141,8 +141,11 @@ export const Navbar: React.FC = () => {
                                 <li className="menu-title">
                                     <div className="flex items-center gap-2 px-2 py-1">
                                         <span className="font-semibold">{user?.username}</span>
-                                        {isAdmin && (
-                                            <span className="badge badge-primary badge-sm">Admin</span>
+                                        {isSuperAdmin && (
+                                            <span className="badge badge-error badge-sm">Super Admin</span>
+                                        )}
+                                        {isLightAdmin && (
+                                            <span className="badge badge-warning badge-sm">Light Admin</span>
                                         )}
                                     </div>
                                 </li>

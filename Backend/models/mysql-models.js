@@ -90,6 +90,30 @@ export class User {
     return await this.findById(userId);
   }
 
+  static async updateAdminRole(userId, adminRole) {
+    // adminRole: 0 = user, 1 = light_admin, 2 = super_admin
+    await pool.execute(
+      'UPDATE user SET is_admin = ? WHERE id = ?',
+      [adminRole, userId]
+    );
+    return await this.findById(userId);
+  }
+
+  static async isSuperAdmin(userId) {
+    const user = await this.findById(userId);
+    return user && user.is_admin === 2;
+  }
+
+  static async isLightAdmin(userId) {
+    const user = await this.findById(userId);
+    return user && user.is_admin === 1;
+  }
+
+  static async isAnyAdmin(userId) {
+    const user = await this.findById(userId);
+    return user && (user.is_admin === 1 || user.is_admin === 2);
+  }
+
   static async getAllWithStats() {
     const [rows] = await pool.execute(`
       SELECT u.*,
@@ -197,14 +221,15 @@ export class File {
 export class Uploaded {
   static async findById(id) {
     const [rows] = await pool.execute(`
-      SELECT u.*, 
+      SELECT u.*,
              img.filename as image_filename,
              snd.filename as sound_filename,
              cat.name as category_name, cat.color as category_color,
-             usr.username as uploaded_by_username
+             usr.username as uploaded_by_username,
+             u.created_at as created_at
       FROM uploaded u
       LEFT JOIN file img ON u.image_id = img.id
-      LEFT JOIN file snd ON u.sound_id = snd.id  
+      LEFT JOIN file snd ON u.sound_id = snd.id
       LEFT JOIN category cat ON u.category_id = cat.id
       LEFT JOIN user usr ON u.uploaded_by = usr.id
       WHERE u.id = ?
@@ -240,13 +265,14 @@ export class Uploaded {
              img.filename as image_filename,
              snd.filename as sound_filename,
              cat.name as category_name, cat.color as category_color,
-             usr.username as uploaded_by_username
+             usr.username as uploaded_by_username,
+             u.created_at as created_at
       FROM uploaded u
       LEFT JOIN file img ON u.image_id = img.id
       LEFT JOIN file snd ON u.sound_id = snd.id
       LEFT JOIN category cat ON u.category_id = cat.id
       LEFT JOIN user usr ON u.uploaded_by = usr.id
-      ORDER BY u.id DESC
+      ORDER BY u.created_at DESC, u.id DESC
     `);
     return rows;
   }
