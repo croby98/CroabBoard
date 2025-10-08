@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:5000/api'; // Replace with the correct backend URL if hosted differently
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 // Helper function to get authenticated headers
 const getAuthHeaders = async (token: string | null) => {
