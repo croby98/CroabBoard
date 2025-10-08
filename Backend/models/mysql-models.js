@@ -16,8 +16,6 @@ const mysqlConfig = {
   database: process.env.MYSQL_DATABASE || 'croabboard',
   port: process.env.MYSQL_PORT || 3306,
   connectionLimit: 10,
-  acquireTimeout: 60000,
-  timeout: 60000
 };
 
 // Create connection pool

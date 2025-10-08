@@ -1,8 +1,73 @@
+volumes:
+  db_data:
+  backend_uploads:
+
+# ===== PROFIL LINUX (host network) =====
 services:
-  db:
+  db-host:
     image: mysql:8.0
     container_name: croabboard-db
     network_mode: host
+    command: --port=3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-croabboard}
+      MYSQL_USER: ${MYSQL_USER:-croabboard}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-croabboard}
+      MYSQL_TCP_PORT: 3306
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./crobboard.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-P", "3306", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    profiles: ["linux-host"]
+
+  backend-host:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: croabboard-backend
+    network_mode: host
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-croabboard}
+      MYSQL_USER: ${MYSQL_USER:-croabboard}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-croabboard}
+      SESSION_SECRET: ${SESSION_SECRET:-super-secret}
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      db-host:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles: ["linux-host"]
+
+  frontend-host:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5000/api}
+    container_name: croabboard-frontend
+    network_mode: host
+    depends_on:
+      - backend-host
+    restart: unless-stopped
+    profiles: ["linux-host"]
+
+# ===== PROFIL WINDOWS (bridge + ports) =====
+  db:
+    image: mysql:8.0
+    container_name: croabboard-db
+    command: --port=3306
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-croabboard}
@@ -11,30 +76,26 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./crobboard.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "3307:3306"    # Expose 3307 côté Windows si besoin de se connecter depuis l’hôte
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
-      interval: 5s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 10
+      start_period: 30s
+    profiles: ["win-bridge"]
 
   backend:
     build:
       context: ./Backend
       dockerfile: Dockerfile
-      args:
-        HTTP_PROXY: ${HTTP_PROXY}
-        HTTPS_PROXY: ${HTTPS_PROXY}
-        NO_PROXY: ${NO_PROXY}
-        http_proxy: ${http_proxy}
-        https_proxy: ${https_proxy}
-        no_proxy: ${no_proxy}
     container_name: croabboard-backend
-    network_mode: host
     environment:
       NODE_ENV: production
       PORT: 5000
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      MYSQL_HOST: localhost
+      MYSQL_HOST: db
       MYSQL_PORT: 3306
       MYSQL_DATABASE: ${MYSQL_DATABASE:-croabboard}
       MYSQL_USER: ${MYSQL_USER:-croabboard}
@@ -45,24 +106,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    profiles: ["win-bridge"]
 
   frontend:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
       args:
-        HTTP_PROXY: ${HTTP_PROXY}
-        HTTPS_PROXY: ${HTTPS_PROXY}
-        NO_PROXY: ${NO_PROXY}
-        http_proxy: ${http_proxy}
-        https_proxy: ${https_proxy}
-        no_proxy: ${no_proxy}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5000/api}
     container_name: croabboard-frontend
-    network_mode: host
     depends_on:
       - backend
-
-volumes:
-  db_data:
-  backend_uploads:
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    profiles: ["win-bridge"]
