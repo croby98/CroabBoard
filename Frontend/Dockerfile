@@ -20,28 +20,12 @@ ENV no_proxy=${no_proxy}
 WORKDIR /app
 
 # Copie des fichiers de dépendances
-COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
+COPY package.json ./
 
-# Installation des dépendances avec support proxy conditionnel
-RUN \
-  if [ -f yarn.lock ]; then \
-    if [ -n "${HTTP_PROXY}" ]; then yarn config set proxy "${HTTP_PROXY}"; fi && \
-    if [ -n "${HTTPS_PROXY}" ]; then yarn config set https-proxy "${HTTPS_PROXY}"; fi && \
-    yarn install --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then \
+RUN npm config set registry https://registry.npmjs.org/ && \
     if [ -n "${HTTP_PROXY}" ]; then npm config set proxy "${HTTP_PROXY}"; fi && \
     if [ -n "${HTTPS_PROXY}" ]; then npm config set https-proxy "${HTTPS_PROXY}"; fi && \
-    npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then \
-    corepack enable && \
-    if [ -n "${HTTP_PROXY}" ]; then pnpm config set proxy "${HTTP_PROXY}"; fi && \
-    if [ -n "${HTTPS_PROXY}" ]; then pnpm config set https-proxy "${HTTPS_PROXY}"; fi && \
-    pnpm i --frozen-lockfile; \
-  else \
-    if [ -n "${HTTP_PROXY}" ]; then npm config set proxy "${HTTP_PROXY}"; fi && \
-    if [ -n "${HTTPS_PROXY}" ]; then npm config set https-proxy "${HTTPS_PROXY}"; fi && \
-    npm i; \
-  fi
+    npm install
 
 COPY . .
 

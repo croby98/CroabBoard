@@ -11,8 +11,8 @@ interface Button {
     category_color: string;
 }
 
-const apiUrlImagesFiles = 'http://localhost:5000/uploads/images/';
-const apiUrlSoundFiles = 'http://localhost:5000/uploads/audio/';
+const apiUrlImagesFiles = 'http://10.71.81.168:5000/uploads/images/';
+const apiUrlSoundFiles = 'http://10.71.81.168:5000/uploads/audio/';
 
 let playCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -43,7 +43,7 @@ const HomeButtons: React.FC = () => {
 
     const refreshFavorites = async () => {
         try {
-            const favResponse = await fetch('http://localhost:5000/api/favorites', {
+            const favResponse = await fetch('http://10.71.81.168:5000/api/favorites', {
                 method: 'GET',
                 credentials: 'include',
             });
@@ -71,7 +71,7 @@ const HomeButtons: React.FC = () => {
         setErrorMessage('');
         try {
             // Fetch buttons
-            const response = await fetch('http://localhost:5000/api/linked', {
+            const response = await fetch('http://10.71.81.168:5000/api/linked', {
                 method: 'GET',
                 credentials: 'include',
             });
@@ -97,7 +97,7 @@ const HomeButtons: React.FC = () => {
                 await refreshFavorites();
 
                 // Get user button size from /api/me endpoint
-                const userResponse = await fetch('http://localhost:5000/api/me', {
+                const userResponse = await fetch('http://10.71.81.168:5000/api/me', {
                     credentials: 'include'
                 });
                 const userData = await userResponse.json();
@@ -149,7 +149,7 @@ const HomeButtons: React.FC = () => {
                     // Record play in history/stats (only for normal clicks, not AK47 spam)
                     if (recordInHistory && buttonUploadedId) {
                         try {
-                            await fetch(`http://localhost:5000/api/play/${buttonUploadedId}`, {
+                            await fetch(`http://10.71.81.168:5000/api/play/${buttonUploadedId}`, {
                                 method: 'POST',
                                 credentials: 'include',
                             });
@@ -276,7 +276,7 @@ const HomeButtons: React.FC = () => {
 
     const handleRemove = async () => {
         if (!contextMenu?.imageId) return;
-        await fetch(`http://localhost:5000/api/delete_image/${contextMenu.imageId}`, {
+        await fetch(`http://10.71.81.168:5000/api/delete_image/${contextMenu.imageId}`, {
             method: 'DELETE',
             credentials: 'include',
         });
@@ -324,7 +324,7 @@ const HomeButtons: React.FC = () => {
         console.log('🔄 Updating button order:', positions);
 
         try {
-            const response = await fetch('http://localhost:5000/api/linked', {
+            const response = await fetch('http://10.71.81.168:5000/api/linked', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

@@ -11,7 +11,7 @@ export const useButtonVolume = () => {
     const fetchVolumes = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/button-volumes', {
+            const response = await fetch('http://10.71.81.168:5000/api/button-volumes', {
                 credentials: 'include',
             });
             const data = await response.json();
@@ -35,7 +35,7 @@ export const useButtonVolume = () => {
         const clampedVolume = Math.max(0, Math.min(1, volume));
 
         try {
-            const response = await fetch(`http://localhost:5000/api/button-volume/${uploadedId}`, {
+            const response = await fetch(`http://10.71.81.168:5000/api/button-volume/${uploadedId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

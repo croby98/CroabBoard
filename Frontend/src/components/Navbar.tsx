@@ -36,7 +36,7 @@ export const Navbar: React.FC = () => {
     const handleLogout = async () => {
         try {
             // Call your API to clear the session
-            const response = await fetch('http://localhost:5000/api/logout', {
+            const response = await fetch('http://10.71.81.168:5000/api/logout', {
                 method: 'POST',
                 credentials: 'include', // Include cookies
             });
@@ -124,7 +124,7 @@ export const Navbar: React.FC = () => {
                                     {user?.avatar ? (
                                         <img
                                             alt={user?.username || 'User'}
-                                            src={`http://localhost:5000/uploads/avatars/${user.avatar}`}
+                                            src={`http://10.71.81.168:5000/uploads/avatars/${user.avatar}`}
                                             className="rounded-full"
                                         />
                                     ) : (

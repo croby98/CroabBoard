@@ -27,7 +27,7 @@ const SoundButton: React.FC<SoundButtonProps> = ({
     onDragOver,
     onDrop,
 }) => {
-    const apiUrlImagesFiles = 'http://localhost:5000/uploads/images/';
+    const apiUrlImagesFiles = 'http://10.71.81.168:5000/uploads/images/';
     
     return (
         <div

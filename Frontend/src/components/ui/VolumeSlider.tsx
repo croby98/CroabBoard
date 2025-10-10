@@ -25,7 +25,7 @@ const VolumeSlider: React.FC<VolumeSliderProps> = ({
         setIsChanging(true);
 
         try {
-            const response = await fetch(`http://localhost:5000/api/button-volume/${uploadedId}`, {
+            const response = await fetch(`http://10.71.81.168:5000/api/button-volume/${uploadedId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
