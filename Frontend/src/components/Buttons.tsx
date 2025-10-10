@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 interface Button {
     id: number;
@@ -12,8 +14,8 @@ interface Button {
     is_linked?: number;
 }
 
-const apiUrlImagesFiles = "http://10.71.81.168:5000/uploads/images/";
-const apiUrlSoundFiles = "http://10.71.81.168:5000/uploads/audio/";
+const apiUrlImagesFiles = `http://${API_BASE_URL}:5000/uploads/images/`;
+const apiUrlSoundFiles = `http://${API_BASE_URL}:5000/uploads/audio/`;
 
 const Buttons: React.FC = () => {
     const [buttons, setButtons] = useState<Button[]>([]);
@@ -30,7 +32,7 @@ const Buttons: React.FC = () => {
     const fetchButtons = async () => {
         setLoading(true);
         try {
-            const res = await fetch("http://10.71.81.168:5000/api/uploaded", { credentials: "include" });
+            const res = await fetch(`http://${API_BASE_URL}:5000/api/uploaded`, { credentials: "include" });
             const data = await res.json();
             if (data.success) {
                 const transformedButtons = data.uploaded.map((button: any) => ({
@@ -77,7 +79,7 @@ const Buttons: React.FC = () => {
         try {
             if (isCurrentlyChecked) {
                 // Unlink the button
-                await fetch(`http://10.71.81.168:5000/api/link/${id}`, {
+                await fetch(`http://${API_BASE_URL}:5000/api/link/${id}`, {
                     method: "DELETE",
                     credentials: "include",
                 });
@@ -85,7 +87,7 @@ const Buttons: React.FC = () => {
                 setSuccessMessage("Button unlinked successfully");
             } else {
                 // Link the button
-                await fetch("http://10.71.81.168:5000/api/link", {
+                await fetch(`http://${API_BASE_URL}:5000/api/link`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -112,7 +114,7 @@ const Buttons: React.FC = () => {
             if (allLinked) {
                 // Unlink all buttons
                 const promises = buttons.map(button =>
-                    fetch(`http://10.71.81.168:5000/api/link/${button.id}`, {
+                    fetch(`http://${API_BASE_URL}:5000/api/link/${button.id}`, {
                         method: "DELETE",
                         credentials: "include",
                     })
@@ -124,7 +126,7 @@ const Buttons: React.FC = () => {
                 // Link all unlinked buttons
                 const unlinkedButtons = buttons.filter(b => !b.is_linked);
                 const promises = unlinkedButtons.map(button =>
-                    fetch("http://10.71.81.168:5000/api/link", {
+                    fetch(`http://${API_BASE_URL}:5000/api/link`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",

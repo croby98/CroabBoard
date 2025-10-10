@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { searchButtonsByCategory } from '@/api/api';
 import debounce from 'lodash.debounce';
 import { useRef } from 'react';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 interface Button {
     image_id: number;
@@ -21,8 +23,8 @@ const SearchButtons: React.FC = () => {
     const [buttonSize, setButtonSize] = useState(150);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const apiUrlImagesFiles = 'http://10.71.81.168:5000/uploads/images/';
-    const apiUrlSoundFiles = 'http://10.71.81.168:5000/uploads/audio/';
+    const apiUrlImagesFiles = `http://${API_BASE_URL}:5000/uploads/images/`;
+    const apiUrlSoundFiles = `http://${API_BASE_URL}:5000/uploads/audio/`;
 
     // Function to fetch buttons based on category
     const fetchButtons = async (category: string) => {

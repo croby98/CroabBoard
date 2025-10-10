@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 interface User {
     id: number;
@@ -39,6 +41,7 @@ interface AdminButton {
     uploaded_by_username?: string;
     upload_date?: string;
     category_id?: number;
+    created_at: string;
 }
 
 interface SystemStats {
@@ -100,7 +103,7 @@ const AdminDashboard: React.FC = () => {
         setLoading(true);
         try {
             // Fetch users
-            const usersResponse = await fetch('http://10.71.81.168:5000/api/admin/users', {
+            const usersResponse = await fetch(`http://${API_BASE_URL}:5000/api/admin/users`, {
                 credentials: 'include',
             });
             if (usersResponse.ok) {
@@ -109,7 +112,7 @@ const AdminDashboard: React.FC = () => {
             }
 
             // Fetch stats
-            const statsResponse = await fetch('http://10.71.81.168:5000/api/stats/all', {
+            const statsResponse = await fetch(`http://${API_BASE_URL}5000/api/stats/all`, {
                 credentials: 'include',
             });
             if (statsResponse.ok) {
@@ -120,7 +123,7 @@ const AdminDashboard: React.FC = () => {
             }
 
             // Fetch deleted buttons
-            const deletedResponse = await fetch('http://10.71.81.168:5000/api/admin/deleted-buttons', {
+            const deletedResponse = await fetch(`http://${API_BASE_URL}:5000/api/admin/deleted-buttons`, {
                 credentials: 'include',
             });
             if (deletedResponse.ok) {
@@ -131,7 +134,7 @@ const AdminDashboard: React.FC = () => {
             }
 
             // Fetch categories
-            const categoriesResponse = await fetch('http://10.71.81.168:5000/api/categories', {
+            const categoriesResponse = await fetch(`http://${API_BASE_URL}:5000/api/categories`, {
                 credentials: 'include',
             });
             if (categoriesResponse.ok) {
@@ -145,7 +148,7 @@ const AdminDashboard: React.FC = () => {
             console.log('Fetching buttons as admin user:', user);
             console.log('User is admin check:', user?.isAdmin);
             try {
-                const buttonsResponse = await fetch('http://10.71.81.168:5000/api/admin/buttons', {
+                const buttonsResponse = await fetch(`http://${API_BASE_URL}:5000/api/admin/buttons`, {
                     credentials: 'include',
                 });
                 console.log('Buttons response status:', buttonsResponse.status);
@@ -177,7 +180,7 @@ const AdminDashboard: React.FC = () => {
 
             // Fetch audit logs (only for super admin)
             if (user?.isAdmin === 2) {
-                const auditResponse = await fetch('http://10.71.81.168:5000/api/admin/audit-logs?limit=50', {
+                const auditResponse = await fetch(`http://${API_BASE_URL}:5000/api/admin/audit-logs?limit=50`, {
                     credentials: 'include',
                 });
                 if (auditResponse.ok) {
@@ -199,7 +202,7 @@ const AdminDashboard: React.FC = () => {
         if (!itemToRestore) return;
 
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/admin/deleted-buttons/${itemToRestore.id}/restore`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/admin/deleted-buttons/${itemToRestore.id}/restore`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -223,7 +226,7 @@ const AdminDashboard: React.FC = () => {
         if (!userToDelete) return;
 
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/admin/users/${userToDelete.id}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/admin/users/${userToDelete.id}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -245,7 +248,7 @@ const AdminDashboard: React.FC = () => {
 
     const handleUpdateRole = async (userId: number, role: number) => {
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/admin/users/${userId}/role`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/admin/users/${userId}/role`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -269,7 +272,7 @@ const AdminDashboard: React.FC = () => {
 
     const handleToggleAdmin = async (userId: number) => {
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/admin/users/${userId}/toggle-admin`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/admin/users/${userId}/toggle-admin`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -295,8 +298,8 @@ const AdminDashboard: React.FC = () => {
 
         try {
             const url = categoryToEdit
-                ? `http://10.71.81.168:5000/api/categories/${categoryToEdit.id}`
-                : 'http://10.71.81.168:5000/api/categories';
+                ? `http://${API_BASE_URL}:5000/api/categories/${categoryToEdit.id}`
+                : `http://${API_BASE_URL}:5000/api/categories`;
 
             const response = await fetch(url, {
                 method: categoryToEdit ? 'PUT' : 'POST',
@@ -333,7 +336,7 @@ const AdminDashboard: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/categories/${categoryId}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/categories/${categoryId}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -365,7 +368,7 @@ const AdminDashboard: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/admin/buttons/${buttonToEdit.id}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/admin/buttons/${buttonToEdit.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -400,7 +403,7 @@ const AdminDashboard: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/admin/buttons/${buttonId}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/admin/buttons/${buttonId}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -624,7 +627,7 @@ const AdminDashboard: React.FC = () => {
                                                         <div className="avatar">
                                                             <div className="w-10 rounded-full ring-2 ring-base-300">
                                                                 {u.avatar ? (
-                                                                    <img src={`http://10.71.81.168:5000/uploads/avatars/${u.avatar}`} alt={u.username} />
+                                                                    <img src={`http://${API_BASE_URL}:5000/uploads/avatars/${u.avatar}`} alt={u.username} />
                                                                 ) : (
                                                                     <div className="bg-neutral text-neutral-content flex items-center justify-center w-full h-full">
                                                                         <span className="text-sm">{u.username[0].toUpperCase()}</span>
@@ -928,7 +931,7 @@ const AdminDashboard: React.FC = () => {
                                                         <div className="avatar">
                                                             <div className="w-12 h-12 rounded">
                                                                 <img
-                                                                    src={button.imageUrl ? `http://10.71.81.168:5000${button.imageUrl}` : `http://10.71.81.168:5000/uploads/images/${button.image_filename}`}
+                                                                    src={button.imageUrl ? `http://${API_BASE_URL}:5000${button.imageUrl}` : `http://${API_BASE_URL}:5000/uploads/images/${button.image_filename}`}
                                                                     alt={button.button_name}
                                                                 />
                                                             </div>

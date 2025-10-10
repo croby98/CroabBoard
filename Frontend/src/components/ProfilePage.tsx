@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 interface UserProfile {
     id: number;
@@ -35,7 +37,7 @@ const ProfilePage: React.FC = () => {
     const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-    const apiUrlImagesFiles = 'http://10.71.81.168:5000/uploads/images/';
+    const apiUrlImagesFiles = `http://${API_BASE_URL}:5000/uploads/images/`;
 
     useEffect(() => {
         fetchProfile();
@@ -45,7 +47,7 @@ const ProfilePage: React.FC = () => {
         setLoading(true);
         try {
             // Get user info first
-            const userResponse = await fetch('http://10.71.81.168:5000/api/me', {
+            const userResponse = await fetch(`http://${API_BASE_URL}:5000/api/me`, {
                 method: 'GET',
                 credentials: 'include',
             });
@@ -55,7 +57,7 @@ const ProfilePage: React.FC = () => {
             }
 
             // Get profile data (matches Python Flask /api/profil)
-            const profileResponse = await fetch('http://10.71.81.168:5000/api/profil', {
+            const profileResponse = await fetch(`http://${API_BASE_URL}:5000/api/profil`, {
                 method: 'GET',
                 credentials: 'include',
             });
@@ -80,7 +82,7 @@ const ProfilePage: React.FC = () => {
 
     const handleButtonSizeChange = async (newSize: number) => {
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/button_size/${newSize}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/button_size/${newSize}`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -143,7 +145,7 @@ const ProfilePage: React.FC = () => {
         }
 
         try {
-            const response = await fetch('http://10.71.81.168:5000/api/reset_password', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/reset_password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -191,7 +193,7 @@ const ProfilePage: React.FC = () => {
             // The Linked table uses uploaded_id, not image_id
             const uploadedIdToDelete = buttonData.uploaded_id || buttonToDelete.imageId;
 
-            const response = await fetch(`http://10.71.81.168:5000/api/link/${uploadedIdToDelete}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/link/${uploadedIdToDelete}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -240,7 +242,7 @@ const ProfilePage: React.FC = () => {
             const formData = new FormData();
             formData.append('avatar', selectedAvatar);
 
-            const response = await fetch('http://10.71.81.168:5000/api/user/avatar', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/user/avatar`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formData,
@@ -264,7 +266,7 @@ const ProfilePage: React.FC = () => {
 
     const handleAvatarDelete = async () => {
         try {
-            const response = await fetch('http://10.71.81.168:5000/api/user/avatar', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/user/avatar`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -327,7 +329,7 @@ const ProfilePage: React.FC = () => {
                                         <div className="w-32 h-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
                                             {avatarPreview || user?.avatar ? (
                                                 <img
-                                                    src={avatarPreview || `http://10.71.81.168:5000/uploads/avatars/${user?.avatar}`}
+                                                    src={avatarPreview || `http://${API_BASE_URL}:5000/uploads/avatars/${user?.avatar}`}
                                                     alt="Avatar"
                                                 />
                                             ) : (

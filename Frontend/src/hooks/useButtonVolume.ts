@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 interface VolumeMap {
     [uploadedId: number]: number;
@@ -11,7 +13,7 @@ export const useButtonVolume = () => {
     const fetchVolumes = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://10.71.81.168:5000/api/button-volumes', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/button-volumes`, {
                 credentials: 'include',
             });
             const data = await response.json();
@@ -35,7 +37,7 @@ export const useButtonVolume = () => {
         const clampedVolume = Math.max(0, Math.min(1, volume));
 
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/button-volume/${uploadedId}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/button-volume/${uploadedId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

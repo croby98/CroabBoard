@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 interface UploadModalProps {
     isOpen: boolean;
@@ -33,7 +35,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch('http://10.71.81.168:5000/api/categories', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/categories`, {
                 credentials: 'include',
             });
             const data = await response.json();
@@ -97,7 +99,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, closeModal }) => {
                 formData.append('CategoryId', categoryId.toString());
             }
 
-            const response = await fetch('http://10.71.81.168:5000/api/buttons', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/buttons`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formData,

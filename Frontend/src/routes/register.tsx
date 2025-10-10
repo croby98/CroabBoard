@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useAuth } from '@/context/AuthContext';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 export const Route = createFileRoute('/register')({
     component: App,
@@ -47,7 +49,7 @@ function App() {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/register', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

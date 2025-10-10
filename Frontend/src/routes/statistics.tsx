@@ -1,5 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect, useRef } from 'react';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 export const Route = createFileRoute('/statistics')({
     component: StatisticsPage,
@@ -31,7 +33,7 @@ function StatisticsPage() {
     const fetchMostPlayed = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/stats/most-played?limit=${limit}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/stats/most-played?limit=${limit}`, {
                 credentials: 'include',
             });
             const data = await response.json();
@@ -51,7 +53,7 @@ function StatisticsPage() {
             // Convert relative URL to absolute URL
             const absoluteUrl = soundUrl?.startsWith('http')
                 ? soundUrl
-                : `http://localhost:5000${soundUrl}`;
+                : `http://${API_BASE_URL}:5000${soundUrl}`;
             audioRef.current.src = absoluteUrl;
             audioRef.current.play();
         }
@@ -150,7 +152,7 @@ function StatisticsPage() {
                                         <img
                                             src={button.imageUrl?.startsWith('http')
                                                 ? button.imageUrl
-                                                : `http://localhost:5000${button.imageUrl}`
+                                                : `http://${API_BASE_URL}:5000${button.imageUrl}`
                                             }
                                             alt={button.button_name}
                                             className="object-cover w-full h-full rounded-xl"

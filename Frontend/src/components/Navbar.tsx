@@ -3,6 +3,8 @@ import { useAuth } from '@/context/AuthContext';
 import {useLocation, useNavigate} from "@tanstack/react-router";
 import UploadModal from './UploadModal';
 import ThemeSelector from './ui/ThemeSelector';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 export const Navbar: React.FC = () => {
 
@@ -36,7 +38,7 @@ export const Navbar: React.FC = () => {
     const handleLogout = async () => {
         try {
             // Call your API to clear the session
-            const response = await fetch('http://10.71.81.168:5000/api/logout', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/logout`, {
                 method: 'POST',
                 credentials: 'include', // Include cookies
             });
@@ -124,7 +126,7 @@ export const Navbar: React.FC = () => {
                                     {user?.avatar ? (
                                         <img
                                             alt={user?.username || 'User'}
-                                            src={`http://10.71.81.168:5000/uploads/avatars/${user.avatar}`}
+                                            src={`http://${API_BASE_URL}:5000/uploads/avatars/${user.avatar}`}
                                             className="rounded-full"
                                         />
                                     ) : (

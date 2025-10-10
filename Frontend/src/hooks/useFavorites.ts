@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+'/api'; 
 
 interface FavoriteButton {
     uploaded_id: number;
@@ -21,7 +23,7 @@ export const useFavorites = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('http://10.71.81.168:5000/api/favorites', {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/favorites`, {
                 credentials: 'include',
             });
             const data = await response.json();
@@ -45,7 +47,7 @@ export const useFavorites = () => {
 
     const addFavorite = useCallback(async (uploadedId: number) => {
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/favorite/${uploadedId}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/favorite/${uploadedId}`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -64,7 +66,7 @@ export const useFavorites = () => {
 
     const removeFavorite = useCallback(async (uploadedId: number) => {
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/favorite/${uploadedId}`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/favorite/${uploadedId}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -83,7 +85,7 @@ export const useFavorites = () => {
 
     const toggleFavorite = useCallback(async (uploadedId: number) => {
         try {
-            const response = await fetch(`http://10.71.81.168:5000/api/favorite/${uploadedId}/toggle`, {
+            const response = await fetch(`http://${API_BASE_URL}:5000/api/favorite/${uploadedId}/toggle`, {
                 method: 'PUT',
                 credentials: 'include',
             });
